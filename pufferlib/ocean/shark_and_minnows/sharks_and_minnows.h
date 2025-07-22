@@ -254,11 +254,10 @@
         }
                  
         minnow->x = clip(minnow->x, 0, env->width);
-        minnow->y = clip(minnow->y, 0, env->height);
-    
-     update_rewards(env);
-     compute_observations(env);
+        minnow->y = clip(minnow->y, 0, env->height); 
     }
+    update_rewards(env);
+    compute_observations(env);
 }
  
  // Required function. Should handle creating the client on first call
