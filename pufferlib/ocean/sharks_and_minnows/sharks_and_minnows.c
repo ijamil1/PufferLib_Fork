@@ -6,8 +6,8 @@
  #include "sharks_and_minnows.h"
  
  int main() {
-     int num_minnows = 30;
-     int num_sharks = 30;
+     int num_minnows = 5;
+     int num_sharks = 5;
      int num_obs = 2*(num_minnows + num_sharks) + 3;
  
  
@@ -32,7 +32,7 @@
      // while(True) will break web builds
      while (!WindowShouldClose()) {
          for (int i=0; i<env.num_minnows; i++) {
-             env.actions[i] = rand() % 5;
+             env.actions[i] = 1;
          }
  
          c_step(&env);

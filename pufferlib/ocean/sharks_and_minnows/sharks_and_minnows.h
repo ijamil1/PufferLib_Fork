@@ -4,6 +4,7 @@
  #include <string.h>
  #include <math.h>
  #include "raylib.h"
+ #include <stdio.h>
  
  // Required struct. Only use floats!
  typedef struct {
@@ -180,7 +181,8 @@
         int collision = 0;
         for (int s=0; s<env->num_sharks; s++) {
             Shark* shark = &env->sharks[s];
-            if (minnow->x == shark->x && minnow->y == shark->y) {
+            float dist = sqrt(pow(minnow->x - shark->x, 2) + pow(minnow->y - shark->y, 2));
+            if (dist <= 48) {
                 env->rewards[m] = -1.0f;
                 env->log.perf -= 1.0f;
                 env->log.score -= 1.0f;
@@ -189,7 +191,7 @@
                 env->log.episode_return -= 1.0f;
                 env->log.n++;
                 collision = 1;
-                break
+                break;
             }
         }
         if (collision) {
@@ -219,11 +221,11 @@
      compute_observations(env);
  }
 
- void clip(float val, float min, float max) {
+ float clip(float val, float min, float max) {
      if (val < min) {
-         return min
+         return min;
      } else if (val > max) {
-         return max
+         return max;
      }
      return val;
  }
@@ -238,7 +240,7 @@
  
         if (env->actions[m] == 0) {
             //do nothing
-            continue
+            continue;
         } else if (env->actions[m] == 1) {
             //move up towards the end of the grid (ie: y decreases)
             minnow->y -= 1;
@@ -268,7 +270,7 @@
          env->client = (Client*)calloc(1, sizeof(Client));
  
          // Don't do this before calling InitWindow
-         env->client->minnow = LoadTexture("resources/shared/puffers_128.png");
+         env->client->minnow = LoadTexture("resources/sharks_and_minnows/Fish.png");
          env->client->shark = LoadTexture("resources/sharks_and_minnows/shark_icon.png");
      }
  
@@ -284,8 +286,8 @@
          Shark* shark = &env->sharks[i];
          DrawTexture(
              env->client->shark,
-             shark->x - 32,
-             shark->y - 32,
+             shark->x - 16,
+             shark->y - 16,
              WHITE
          );
      }
@@ -306,7 +308,7 @@
  // Required function. Should clean up anything you allocated
  // Do not free env->observations, actions, rewards, terminals
  void c_close(SharksAndMinnows* env) {
-     free(env->minnow);
+     free(env->minnows);
      free(env->sharks);
      free(env->goal);
      if (env->client != NULL) {
