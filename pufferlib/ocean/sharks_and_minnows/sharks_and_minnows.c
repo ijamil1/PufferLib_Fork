@@ -32,7 +32,9 @@
      // while(True) will break web builds
      while (!WindowShouldClose()) {
          for (int i=0; i<env.num_minnows; i++) {
-             env.actions[i] = 1;
+             do {
+                 env.actions[i] = 1+rand() % 4;
+             } while (env.actions[i] == 3);
          }
  
          c_step(&env);
