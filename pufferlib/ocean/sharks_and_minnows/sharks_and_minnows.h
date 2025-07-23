@@ -229,10 +229,68 @@
      }
      return val;
  }
+
+ float horizontal_wrap(float x, float width) {
+    if (x < 0) {
+        return width - 1;
+    } else if (x >= width) {
+        return 0;
+    }
+    return x;
+}
+ 
+ // Add this helper function at an appropriate place (e.g., after clip)
+float distance(float x1, float y1, float x2, float y2) {
+    return sqrtf(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+}
+
+// Add this function to move sharks toward closest minnow
+void move_sharks_toward_minnows(SharksAndMinnows* env) {
+    for (int s = 0; s < env->num_sharks; s++) {
+        Shark* shark = &env->sharks[s];
+        // Find closest minnow
+        float min_dist = 1e9;
+        float minnow_x = 0, minnow_y = 0;
+        for (int m = 0; m < env->num_minnows; m++) {
+            Agent* minnow = &env->minnows[m];
+            float d = distance(shark->x, shark->y, minnow->x, minnow->y);
+            if (d < min_dist) {
+                min_dist = d;
+                minnow_x = minnow->x;
+                minnow_y = minnow->y;
+            }
+        }
+        // Try all possible directions: 0=stay, 1=up, 2=right, 3=down, 4=left
+        float best_x = shark->x, best_y = shark->y;
+        float best_dist = distance(shark->x, shark->y, minnow_x, minnow_y);
+        float dirs[5][2] = {
+            {0, 0},    // stay
+            {0, -1},   // up
+            {1, 0},    // right
+            {0, 1},    // down
+            {-1, 0}    // left
+        };
+        for (int d = 0; d < 5; d++) {
+            float nx = shark->x + dirs[d][0];
+            float ny = shark->y + dirs[d][1];
+            nx = clip(nx, 0, env->width - 1);
+            ny = clip(ny, 0, env->height - 1);
+            float d_to_m = distance(nx, ny, minnow_x, minnow_y);
+            if (d_to_m < best_dist) {
+                best_dist = d_to_m;
+                best_x = nx;
+                best_y = ny;
+            }
+        }
+        shark->x = best_x;
+        shark->y = best_y;
+    }
+}
  
  
  // Required function
  void c_step(SharksAndMinnows* env) {
+     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
          Agent* minnow = &env->minnows[m];
@@ -255,8 +313,8 @@
             minnow->x -= 1;
         }
                  
-        minnow->x = clip(minnow->x, 0, env->width);
-        minnow->y = clip(minnow->y, 0, env->height); 
+        minnow->x = clip(minnow->x, 0, env->width - 1);
+        minnow->y = clip(minnow->y, 0, env->height - 1); 
     }
     update_rewards(env);
     compute_observations(env);
