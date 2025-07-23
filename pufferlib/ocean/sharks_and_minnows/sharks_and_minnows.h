@@ -10,6 +10,8 @@
  typedef struct {
      float perf; // Recommended 0-1 normalized single real number perf metric
      float score; // Recommended unnormalized single real number perf metric
+     float shark_collisions;
+     float minnow_goal_reaches;
      float episode_return; // Recommended metric: sum of agent rewards over episode
      float episode_length; // Recommended metric: number of steps of agent episode
      float n; // Required as the last field 
@@ -195,6 +197,7 @@
             }
         }
         if (collision) {
+            env->log.shark_collisions += 1.0f;
             reset_single_minnow(env, m);
             continue;
         }
@@ -206,8 +209,8 @@
             minnow->ticks_since_reward = 0;
             env->log.episode_return += 1.0f;
             env->log.n++;
+            env->log.minnow_goal_reaches += 1.0f;
             reset_single_minnow(env, m);
-            reset_sharks(env);
         }
      }
  }
@@ -276,6 +279,9 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             nx = clip(nx, 0, env->width - 1);
             ny = clip(ny, 0, env->height - 1);
             float d_to_m = distance(nx, ny, minnow_x, minnow_y);
+            if (ny == env->height - 1) {
+                d_to_m = 1e9;
+            }
             if (d_to_m < best_dist) {
                 best_dist = d_to_m;
                 best_x = nx;
@@ -315,6 +321,11 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
                  
         minnow->x = clip(minnow->x, 0, env->width - 1);
         minnow->y = clip(minnow->y, 0, env->height - 1); 
+
+        if (minnow->ticks_since_reward % (env->height * 4) == 0) {
+            minnow->x = rand() % env->width;
+            minnow->y = env->height - 1;
+        }
     }
     update_rewards(env);
     compute_observations(env);
