@@ -914,17 +914,17 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # Final eval. You can reset the env here, but depending on
     # your env, this can skew data (i.e. you only collect the shortest
     # rollouts within a fixed number of epochs)
-    i = 0
+
     stats = {}
-    while i < 32 or not stats:
+    while not stats:
         stats = pufferl.evaluate()
-        i += 1
 
     logs = pufferl.mean_and_log()
     if logs is not None:
         all_logs.append(logs)
 
-    pufferl.print_dashboard()
+    #pufferl.print_dashboard()
+    print(stats)
     model_path = pufferl.close()
     pufferl.logger.close(model_path)
     return all_logs

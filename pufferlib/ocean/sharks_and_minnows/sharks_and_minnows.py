@@ -73,7 +73,7 @@ if __name__ == '__main__':
     i = 0
     import time
     start = time.time()
-    while time.time() - start < 25:
+    while time.time() - start < 10:
         env.step(actions[i % CACHE])
         steps += env.num_minnows
         i += 1
