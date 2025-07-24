@@ -302,10 +302,6 @@ class PuffeRL:
 
             profile('eval_misc', epoch)
 
-            if len(info) > 0:
-                logs_returned = True
-            else:
-                logs_returned = False
 
             for i in info:
                 for k, v in pufferlib.unroll_nested_dict(i):
@@ -324,7 +320,7 @@ class PuffeRL:
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
         profile.end()
-        return self.stats, logs_returned
+        return self.stats
 
     @record
     def train(self):
@@ -933,11 +929,13 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # your env, this can skew data (i.e. you only collect the shortest
     # rollouts within a fixed number of epochs)
 
- 
-    while True:
-        _, logs_returned = pufferl.evaluate()
-        if logs_returned:
-            break
+    log_interval = vecenv.log_interval
+    print('beginning final eval')
+    i = 0
+    while i < log_interval/args['train']['bptt_horizon']:
+        pufferl.evaluate()
+        i += 1 
+    print('end of final eval')
 
     logs = pufferl.mean_and_log()
     if logs is not None:
