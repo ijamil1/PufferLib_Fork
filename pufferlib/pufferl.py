@@ -22,6 +22,18 @@ import numpy as np
 import psutil
 
 import torch
+
+import heavyball.utils
+
+def fixed_is_compiling():
+    try:
+        from torch._dynamo import is_compiling as dynamo_is_compiling
+        return dynamo_is_compiling()
+    except (ImportError, AttributeError):
+        return False
+
+heavyball.utils.is_compiling = fixed_is_compiling
+
 import torch.distributed
 from torch.distributed.elastic.multiprocessing.errors import record
 import torch.utils.cpp_extension
