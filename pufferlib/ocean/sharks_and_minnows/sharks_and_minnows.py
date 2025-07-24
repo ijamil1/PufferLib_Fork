@@ -7,7 +7,7 @@ import pufferlib
 from pufferlib.ocean.sharks_and_minnows import binding
 
 class SharksAndMinnows(pufferlib.PufferEnv):
-    def __init__(self, num_envs=1, width=1080, height=720, num_agents=8, render_mode=None, log_interval=128, size=11, buf=None, seed=0):
+    def __init__(self, num_envs=1, width=256, height=256, num_agents=8, render_mode=None, log_interval=256 * 4, size=11, buf=None, seed=0):
 
         num_minnows = num_agents
         num_sharks = num_agents
