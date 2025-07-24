@@ -929,7 +929,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # your env, this can skew data (i.e. you only collect the shortest
     # rollouts within a fixed number of epochs)
 
-    log_interval = vecenv.log_interval
+    log_interval = 256 * 4
     print('beginning final eval')
     i = 0
     while i < log_interval/args['train']['bptt_horizon']:
