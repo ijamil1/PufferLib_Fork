@@ -1203,7 +1203,8 @@ def main():
     mode = sys.argv.pop(1)
     env_name = sys.argv.pop(1)
     if mode == 'train':
-        train(env_name=env_name)
+        all_logs = train(env_name=env_name)
+        print(all_logs[-3:])
     elif mode == 'eval':
         eval(env_name=env_name)
     elif mode == 'sweep':
