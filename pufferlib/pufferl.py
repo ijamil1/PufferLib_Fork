@@ -304,6 +304,7 @@ class PuffeRL:
 
 
             for i in info:
+                print(i)
                 for k, v in pufferlib.unroll_nested_dict(i):
                     if isinstance(v, np.ndarray):
                         v = v.tolist()
@@ -448,7 +449,8 @@ class PuffeRL:
         logs = None
         self.epoch += 1
         done_training = self.global_step >= config['total_timesteps']
-        if done_training or self.global_step == 0 or time.time() > self.last_log_time + 0.25:
+        #if done_training or self.global_step == 0 or time.time() > self.last_log_time + 0.25:
+        if done_training or self.global_step == 0 or len(self.stats) > 0:
             logs = self.mean_and_log()
             self.losses = losses
             self.print_dashboard()
