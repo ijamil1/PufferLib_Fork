@@ -22,6 +22,7 @@ import numpy as np
 import psutil
 
 import torch
+torch.cuda.empty_cache()  
 
 import heavyball.utils
 
