@@ -76,6 +76,11 @@
     env->minnows = calloc(env->num_minnows, sizeof(Agent));
     env->sharks = calloc(env->num_sharks, sizeof(Shark));
     env->goal = calloc(1, sizeof(Goal));
+    
+    // Explicitly initialize ticks_since_reward to 0 for all minnows
+    for (int m = 0; m < env->num_minnows; m++) {
+        env->minnows[m].ticks_since_reward = 0;
+    }
  }
  
  void reset_sharks(SharksAndMinnows* env) {
@@ -153,6 +158,7 @@
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
                 env->minnows[m].prev_y = y;
+                env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
             }
         }
     }
@@ -187,6 +193,7 @@
             env->minnows[m].x = x;
             env->minnows[m].y = y;
             env->minnows[m].prev_y = y;
+            env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
         }
     }
  }
