@@ -25,6 +25,7 @@
  typedef struct {
      float x;
      float y;
+     float prev_y;
      int ticks_since_reward;
  } Agent;
 
@@ -83,7 +84,7 @@
         int unique = 0;
         while (!unique) {
             int x = rand() % env->width;
-            int y = rand() % (env->height - 1); // y != env->height - 1 because minnows start there
+            int y = rand() % (env->height/2); // sharks start in the top half of the grid
 
             unique = 1;
             // Check for uniqueness with previously placed sharks
@@ -121,12 +122,12 @@
              env->observations[obs_idx++] = (shark->x - minnow->x)/env->width;
              env->observations[obs_idx++] = (shark->y - minnow->y)/env->height;
          }
-         for (int a=0; a<env->num_minnows; a++) {
-             Agent* other = &env->minnows[a];
-             env->observations[obs_idx++] = (other->x - minnow->x)/env->width;
-             env->observations[obs_idx++] = (other->y - minnow->y)/env->height;
-         }
-         env->observations[obs_idx++] = env->rewards[m];
+         //for (int a=0; a<env->num_minnows; a++) {
+         //    Agent* other = &env->minnows[a];
+         //    env->observations[obs_idx++] = (other->x - minnow->x)/env->width;
+         //    env->observations[obs_idx++] = (other->y - minnow->y)/env->height;
+         //}
+         //env->observations[obs_idx++] = env->rewards[m];
          env->observations[obs_idx++] = minnow->x/env->width;
          env->observations[obs_idx++] = minnow->y/env->height;
      }
@@ -141,7 +142,7 @@
             int y = env->height - 1;
 
             unique = 1;
-            // Check for uniqueness with previously placed sharks
+            // Check for uniqueness with previously placed minnows
             for (int t = 0; t < m; t++) {
                 if (env->minnows[t].x == x && env->minnows[t].y == y) {
                     unique = 0;
@@ -151,6 +152,7 @@
             if (unique) {
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
+                env->minnows[m].prev_y = y;
             }
         }
     }
@@ -172,6 +174,7 @@
         if (unique) {
             env->minnows[m].x = x;
             env->minnows[m].y = y;
+            env->minnows[m].prev_y = y;
         }
     }
  }
@@ -211,6 +214,14 @@
             env->log.n++;
             env->log.minnow_goal_reaches += 1.0f;
             reset_single_minnow(env, m);
+        }
+        else {
+            if (minnow->y < minnow->prev_y) {
+                env->rewards[m] += 0.075f;
+            }
+            if (dist <= 64 && dist > 48) {
+                env->rewards[m] -= 0.05f;
+            }
         }
      }
  }
@@ -301,6 +312,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
          env->rewards[m] = 0;
          Agent* minnow = &env->minnows[m];
          minnow->ticks_since_reward += 1;
+         minnow->prev_y = minnow->y;
  
         if (env->actions[m] == 0) {
             //do nothing
