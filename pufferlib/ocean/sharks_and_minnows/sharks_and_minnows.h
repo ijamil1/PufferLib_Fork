@@ -184,9 +184,13 @@
      for (int m=0; m<env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
         int collision = 0;
+        float min_dist = 1e9;
         for (int s=0; s<env->num_sharks; s++) {
             Shark* shark = &env->sharks[s];
             float dist = sqrt(pow(minnow->x - shark->x, 2) + pow(minnow->y - shark->y, 2));
+            if (dist < min_dist) {
+                min_dist = dist;
+            }
             if (dist <= 48) {
                 env->rewards[m] = -1.0f;
                 env->log.perf -= 1.0f;
@@ -219,7 +223,7 @@
             if (minnow->y < minnow->prev_y) {
                 env->rewards[m] += 0.075f;
             }
-            if (dist <= 64 && dist > 48) {
+            if (min_dist <= 64 && min_dist > 48) {
                 env->rewards[m] -= 0.05f;
             }
         }
