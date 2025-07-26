@@ -171,6 +171,18 @@
                 break;
             }
         }
+        // Check minimum distance to sharks
+        float min_shark_dist = 1e9;
+        for (int s = 0; s < env->num_sharks; s++) {
+            float dist = sqrt(pow(x - env->sharks[s].x, 2) + pow(y - env->sharks[s].y, 2));
+            if (dist < min_shark_dist) {
+                min_shark_dist = min_shark_dist;
+            }
+        }
+        if (min_shark_dist < 64) {
+            unique = 0;
+        }
+
         if (unique) {
             env->minnows[m].x = x;
             env->minnows[m].y = y;
@@ -205,7 +217,7 @@
         }
         if (collision) {
             env->log.shark_collisions += 1.0f;
-            reset_single_minnow(env, m);
+            env->terminals[m] = 1;
             continue;
         }
         if (minnow->y == 0) {
@@ -217,7 +229,7 @@
             env->log.episode_return += 1.0f;
             env->log.n++;
             env->log.minnow_goal_reaches += 1.0f;
-            reset_single_minnow(env, m);
+            env->terminals[m] = 1;
         }
         else {
             if (minnow->y < minnow->prev_y) {
@@ -314,6 +326,12 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
      move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
+         if (env->terminals[m]) {
+            //if minnow is in a terminal state, reset the state and reset the terminal flag and move on to the next minnow
+            reset_single_minnow(env, m);
+            env->terminals[m] = 0;
+            continue;
+         }
          Agent* minnow = &env->minnows[m];
          minnow->ticks_since_reward += 1;
          minnow->prev_y = minnow->y;
@@ -343,7 +361,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             minnow->y = env->height - 1;
         }
     }
-    update_rewards(env);
+    update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
     compute_observations(env);
 }
  
