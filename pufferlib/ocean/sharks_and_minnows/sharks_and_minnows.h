@@ -255,12 +255,12 @@
         }
         else {
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] = 0.075f;
-                env->log.score += 0.075f;
+                env->rewards[m] = 0.001;
+                env->log.score += 0.001f;
             }
             if (min_dist <= 64 && min_dist > 48) {
-                env->rewards[m] = -0.15f;
-                env->log.score -= 0.15f;
+                env->rewards[m] = -0.35f;
+                env->log.score -= 0.35f;
             }
         }
      }
@@ -326,7 +326,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         {0, 1},    // down
         {-1, 0}    // left
     };
-    
+
     for (int s = 0; s < env->num_sharks; s++) {
         float r = (float)rand() / RAND_MAX;
         Shark* shark = &env->sharks[s];
