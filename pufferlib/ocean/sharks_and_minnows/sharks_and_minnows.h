@@ -273,6 +273,8 @@
      reset_minnows(env);
      reset_sharks(env);
      compute_observations(env);
+     print_shark_positions(env);
+     print_minnow_positions(env);
  }
 
  void print_shark_positions(SharksAndMinnows* env) {
@@ -363,8 +365,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  
  // Required function
  void c_step(SharksAndMinnows* env) {
-    print_shark_positions(env);
-    print_minnow_positions(env);
+    //print_shark_positions(env);
+    //print_minnow_positions(env);
      move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
