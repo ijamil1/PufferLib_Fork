@@ -255,8 +255,8 @@
         }
         else {
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] = 0.001;
-                env->log.score += 0.001f;
+                env->rewards[m] = 0.005f;
+                env->log.score += 0.005f;
             }
             if (min_dist <= 64 && min_dist > 48) {
                 env->rewards[m] = -0.35f;
