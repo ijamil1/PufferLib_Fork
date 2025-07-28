@@ -275,6 +275,22 @@
      compute_observations(env);
  }
 
+ void print_shark_positions(SharksAndMinnows* env) {
+     printf("Shark positions:\n");
+     for (int s = 0; s < env->num_sharks; s++) {
+         Shark* shark = &env->sharks[s];
+         printf("Shark %d: x=%d, y=%d\n", s, shark->x, shark->y);
+     }
+ }
+
+ void print_minnow_positions(SharksAndMinnows* env) {
+     printf("Minnow positions:\n");
+     for (int m = 0; m < env->num_minnows; m++) {
+         Agent* minnow = &env->minnows[m];
+         printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
+     }
+ }
+
  float clip(float val, float min, float max) {
      if (val < min) {
          return min;
@@ -347,6 +363,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  
  // Required function
  void c_step(SharksAndMinnows* env) {
+    print_shark_positions(env);
+    print_minnow_positions(env);
      move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
