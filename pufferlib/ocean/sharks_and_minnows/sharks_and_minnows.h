@@ -12,6 +12,11 @@
      float score; // Recommended unnormalized single real number perf metric
      float shark_collisions;
      float minnow_goal_reaches;
+     float left_moves;
+     float right_moves;
+     float up_moves;
+     float down_moves;
+     float stay_moves;
      float episode_return; // Recommended metric: sum of agent rewards over episode
      float episode_length; // Recommended metric: number of steps of agent episode
      float n; // Required as the last field 
@@ -81,6 +86,16 @@
     for (int m = 0; m < env->num_minnows; m++) {
         env->minnows[m].ticks_since_reward = 0;
     }
+    env->log.left_moves = 0;
+    env->log.right_moves = 0;
+    env->log.up_moves = 0;
+    env->log.down_moves = 0;
+    env->log.stay_moves = 0;
+    env->log.shark_collisions = 0;
+    env->log.minnow_goal_reaches = 0;
+    env->log.episode_return = 0;
+    env->log.episode_length = 0;
+    env->log.n = 0;
  }
  
  void reset_sharks(SharksAndMinnows* env) {
@@ -240,10 +255,12 @@
         }
         else {
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] += 0.075f;
+                env->rewards[m] = 0.075f;
+                env->log.score += 0.075f;
             }
             if (min_dist <= 64 && min_dist > 48) {
-                env->rewards[m] -= 0.05f;
+                env->rewards[m] = -0.05f;
+                env->log.score -= 0.05f;
             }
         }
      }
@@ -345,18 +362,23 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  
         if (env->actions[m] == 0) {
             //do nothing
+            env->log.stay_moves += 1.0f;
             continue;
         } else if (env->actions[m] == 1) {
             //move up towards the end of the grid (ie: y decreases)
+            env->log.up_moves += 1.0f;
             minnow->y -= 1;
         } else if (env->actions[m] == 2) {
             //move right (ie: x increases)
+            env->log.right_moves += 1.0f;
             minnow->x += 1;
         } else if (env->actions[m] == 3) {
             // move down (ie: y increases)
+            env->log.down_moves += 1.0f;
             minnow->y += 1;
         } else {
             // move left (ie: x decreases)
+            env->log.left_moves += 1.0f;
             minnow->x -= 1;
         }
                  

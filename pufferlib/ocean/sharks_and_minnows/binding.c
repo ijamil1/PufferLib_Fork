@@ -19,5 +19,10 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "episode_length", log->episode_length);
     assign_to_dict(dict, "shark_collisions", log->shark_collisions);
     assign_to_dict(dict, "minnow_goal_reaches", log->minnow_goal_reaches);
+    assign_to_dict(dict, "left_moves", log->left_moves);
+    assign_to_dict(dict, "right_moves", log->right_moves);
+    assign_to_dict(dict, "up_moves", log->up_moves);
+    assign_to_dict(dict, "down_moves", log->down_moves);
+    assign_to_dict(dict, "stay_moves", log->stay_moves);
     return 0;
 }
