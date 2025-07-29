@@ -924,7 +924,9 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     print('entering training loop')
     while pufferl.global_step < train_config['total_timesteps']:
         pufferl.evaluate()
+        print('finished a rollout')
         logs = pufferl.train()
+        print('finished training on prior rollout')
 
         if logs is not None:
             if pufferl.global_step > 0.20*train_config['total_timesteps']:
