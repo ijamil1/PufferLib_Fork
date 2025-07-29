@@ -28,20 +28,20 @@
  } Client;
  
  typedef struct {
-     float x;
-     float y;
-     float prev_y;
+     int x;
+     int y;
+     int prev_y;
      int ticks_since_reward;
  } Agent;
 
  typedef struct {
-     float x;
-     float y;
+     int x;
+     int y;
  } Shark;
  
  typedef struct {
-     float x;
-     float y;
+     int x;
+     int y;
  } Goal;
  
  // Required that you have some struct for your env
@@ -86,16 +86,16 @@
     for (int m = 0; m < env->num_minnows; m++) {
         env->minnows[m].ticks_since_reward = 0;
     }
-    env->log.left_moves = 0;
-    env->log.right_moves = 0;
-    env->log.up_moves = 0;
-    env->log.down_moves = 0;
-    env->log.stay_moves = 0;
-    env->log.shark_collisions = 0;
-    env->log.minnow_goal_reaches = 0;
-    env->log.episode_return = 0;
-    env->log.episode_length = 0;
-    env->log.n = 0;
+    env->log.left_moves = 0.0f;
+    env->log.right_moves = 0.0f;
+    env->log.up_moves = 0.0f;
+    env->log.down_moves = 0.0f;
+    env->log.stay_moves = 0.0f;
+    env->log.shark_collisions = 0.0f;
+    env->log.minnow_goal_reaches = 0.0f;
+    env->log.episode_return = 0.0f;
+    env->log.episode_length = 0.0f;
+    env->log.n = 0.0f;
  }
  
  void reset_sharks(SharksAndMinnows* env) {
@@ -281,6 +281,10 @@
  }
 
  void print_shark_positions(SharksAndMinnows* env) {
+    if (!env->sharks) {
+        printf("Error: sharks pointer is NULL\n");
+        return;
+    }
      for (int s = 0; s < env->num_sharks; s++) {
          Shark* shark = &env->sharks[s];
          printf("Shark %d: x=%d, y=%d\n", s, shark->x, shark->y);
@@ -288,6 +292,10 @@
  }
 
  void check_shark_positions(SharksAndMinnows* env) {
+    if (!env->sharks) {
+        printf("Error: sharks pointer is NULL\n");
+        return;
+    }
     for (int s = 0; s < env->num_sharks; s++) {
         Shark* shark = &env->sharks[s];
         if (shark->x < 0 || shark->x > env->width - 1 || shark->y < 1 || shark->y > env->height - 2) {
@@ -297,17 +305,25 @@
 }
 
  void print_minnow_positions(SharksAndMinnows* env) {
-     for (int m = 0; m < env->num_minnows; m++) {
-         Agent* minnow = &env->minnows[m];
+    if (!env->minnows) {
+        printf("Error: minnows pointer is NULL\n");
+        return;
+    }
+    for (int m = 0; m < env->num_minnows; m++) {
+        Agent* minnow = &env->minnows[m];
         if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
             printf("Minnow %d is out of valid range: x=%d, y=%d\n", m, minnow->x, minnow->y);
         }
         printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
         printf("Env width: %d, height: %d\n", env->width, env->height);
-     }
+    }
  }
 
  void check_minnow_positions(SharksAndMinnows* env) {
+    if (!env->minnows) {
+        printf("Error: minnows pointer is NULL\n");
+        return;
+    }
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
         if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
@@ -316,7 +332,7 @@
     }
  }
 
- float clip(float val, float min, float max) {
+ int clip(int val, int min, int max) {
      if (val < min) {
          return min;
      } else if (val > max) {
@@ -325,17 +341,9 @@
      return val;
  }
 
- float horizontal_wrap(float x, float width) {
-    if (x < 0) {
-        return width - 1;
-    } else if (x >= width) {
-        return 0;
-    }
-    return x;
-}
  
  // Add this helper function at an appropriate place (e.g., after clip)
-float distance(float x1, float y1, float x2, float y2) {
+float distance(int x1, int y1, int x2, int y2) {
     return sqrtf(pow(x1 - x2, 2) + pow(y1 - y2, 2));
 }
 
