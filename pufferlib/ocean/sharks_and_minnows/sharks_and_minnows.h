@@ -394,6 +394,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  void c_step(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
+    print_minnow_positions(env);
      move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
