@@ -879,6 +879,7 @@ class WandbLogger:
  
 def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     args = args or load_config(env_name)
+    print("loaded args/config")
 
     # Assume TorchRun DDP is used if LOCAL_RANK is set
     if 'LOCAL_RANK' in os.environ:
@@ -892,6 +893,8 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
         os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 
     vecenv = vecenv or load_env(env_name, args)
+    print("created/loaded vecenv")
+
     policy = policy or load_policy(args, vecenv, env_name)
 
     if 'LOCAL_RANK' in os.environ:
@@ -915,8 +918,10 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
 
     train_config = dict(**args['train'], env=env_name)
     pufferl = PuffeRL(train_config, vecenv, policy, logger)
+    print("configured pufferl instance")
 
     all_logs = []
+    print('entering training loop')
     while pufferl.global_step < train_config['total_timesteps']:
         pufferl.evaluate()
         logs = pufferl.train()
