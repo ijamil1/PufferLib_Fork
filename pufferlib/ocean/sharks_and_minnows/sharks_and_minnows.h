@@ -302,7 +302,8 @@
         if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
             printf("Minnow %d is out of valid range: x=%d, y=%d\n", m, minnow->x, minnow->y);
         }
-         printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
+        printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
+        printf("Env width: %d, height: %d\n", env->width, env->height);
      }
  }
 
@@ -399,7 +400,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  // Required function
  void c_step(SharksAndMinnows* env) {
     check_shark_positions(env);
-    check_minnow_positions(env);
+    //check_minnow_positions(env);
     print_minnow_positions(env);
     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
     for (int m=0; m<env->num_minnows; m++) {
