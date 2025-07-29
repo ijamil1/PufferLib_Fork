@@ -120,6 +120,9 @@
                     break;
                 }
             }
+            if (y <= 0 || y >= env->height - 1 || x < 0 || x > env->width - 1) {
+                unique = 0;
+            }
             if (unique) {
                 env->sharks[s].x = x;
                 env->sharks[s].y = y;
@@ -287,7 +290,7 @@
  void check_shark_positions(SharksAndMinnows* env) {
     for (int s = 0; s < env->num_sharks; s++) {
         Shark* shark = &env->sharks[s];
-        if (shark->x < 0 || shark->x >= env->width || shark->y <= 0 || shark->y >= env->height - 1) {
+        if (shark->x < 0 || shark->x > env->width - 1 || shark->y < 1 || shark->y > env->height - 2) {
             printf("Shark %d is out of valid range: x=%d, y=%d\n", s, shark->x, shark->y);
         }
     }
@@ -296,6 +299,9 @@
  void print_minnow_positions(SharksAndMinnows* env) {
      for (int m = 0; m < env->num_minnows; m++) {
          Agent* minnow = &env->minnows[m];
+        if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
+            printf("Minnow %d is out of valid range: x=%d, y=%d\n", m, minnow->x, minnow->y);
+        }
          printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
      }
  }
@@ -350,7 +356,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         if (r > 0.4) {
             int random_dir = rand() % 5; // 0-4 for stay,up,right,down,left
             shark->x = clip(shark->x + dirs[random_dir][0], 0, env->width - 1);
-            shark->y = clip(shark->y + dirs[random_dir][1], 0, env->height - 1);
+            shark->y = clip(shark->y + dirs[random_dir][1], 1, env->height - 2);
             continue;
         }
         // Find closest minnow
@@ -373,7 +379,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             float nx = shark->x + dirs[d][0];
             float ny = shark->y + dirs[d][1];
             nx = clip(nx, 0, env->width - 1);
-            ny = clip(ny, 0, env->height - 1);
+            ny = clip(ny, 1, env->height - 2);
             float d_to_m = distance(nx, ny, minnow_x, minnow_y);
             if (ny == env->height - 1 || ny == 0) {
                 d_to_m = 1e9;
@@ -395,8 +401,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
     print_minnow_positions(env);
-     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
-     for (int m=0; m<env->num_minnows; m++) {
+    move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
          if (env->terminals[m]) {
             //if minnow is in a terminal state, reset the state and reset the terminal flag and move on to the next minnow
