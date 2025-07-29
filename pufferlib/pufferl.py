@@ -275,6 +275,7 @@ class PuffeRL:
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
+                print(f"Timestep of horizon: {l}")
                 batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
 
                 if config['cpu_offload']:
