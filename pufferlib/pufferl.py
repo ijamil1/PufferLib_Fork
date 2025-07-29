@@ -275,7 +275,6 @@ class PuffeRL:
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
-                print(f"Timestep of horizon: {l}")
                 batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
 
                 if config['cpu_offload']:
@@ -925,9 +924,9 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     print('entering training loop')
     while pufferl.global_step < train_config['total_timesteps']:
         pufferl.evaluate()
-        print('finished a rollout')
+        #print('finished a rollout')
         logs = pufferl.train()
-        print('finished training on prior rollout')
+        #print('finished training on prior rollout')
 
         if logs is not None:
             if pufferl.global_step > 0.20*train_config['total_timesteps']:
@@ -936,7 +935,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # Final eval. You can reset the env here, but depending on
     # your env, this can skew data (i.e. you only collect the shortest
     # rollouts within a fixed number of epochs)
-
+    print('exited training loop')
     log_interval = 256 * 4
     print('beginning final eval')
     i = 0
