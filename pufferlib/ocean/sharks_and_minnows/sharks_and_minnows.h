@@ -5,6 +5,7 @@
  #include <math.h>
  #include "raylib.h"
  #include <stdio.h>
+ #include <assert.h>
  
  // Required struct. Only use floats!
  typedef struct {
@@ -200,7 +201,7 @@
         for (int s = 0; s < env->num_sharks; s++) {
             float dist = sqrt(pow(x - env->sharks[s].x, 2) + pow(y - env->sharks[s].y, 2));
             if (dist < min_shark_dist) {
-                min_shark_dist = min_shark_dist;
+                min_shark_dist = dist;
             }
         }
         if (min_shark_dist < 64) {
@@ -270,27 +271,6 @@
  }
 
 
-
- // Required function
- void c_reset(SharksAndMinnows* env) {
-     reset_minnows(env);
-     reset_sharks(env);
-     compute_observations(env);
-     print_shark_positions(env);
-     print_minnow_positions(env);
- }
-
- void print_shark_positions(SharksAndMinnows* env) {
-    if (!env->sharks) {
-        printf("Error: sharks pointer is NULL\n");
-        return;
-    }
-     for (int s = 0; s < env->num_sharks; s++) {
-         Shark* shark = &env->sharks[s];
-         printf("Shark %d: x=%d, y=%d\n", s, shark->x, shark->y);
-     }
- }
-
  void check_shark_positions(SharksAndMinnows* env) {
     if (!env->sharks) {
         printf("Error: sharks pointer is NULL\n");
@@ -301,21 +281,6 @@
         if (shark->x < 0 || shark->x > env->width - 1 || shark->y < 1 || shark->y > env->height - 2) {
             printf("Shark %d is out of valid range: x=%d, y=%d\n", s, shark->x, shark->y);
         }
-    }
-}
-
- void print_minnow_positions(SharksAndMinnows* env) {
-    if (!env->minnows) {
-        printf("Error: minnows pointer is NULL\n");
-        return;
-    }
-    for (int m = 0; m < env->num_minnows; m++) {
-        Agent* minnow = &env->minnows[m];
-        if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
-            printf("Minnow %d is out of valid range: x=%d, y=%d\n", m, minnow->x, minnow->y);
-        }
-        printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
-        printf("Env width: %d, height: %d\n", env->width, env->height);
     }
  }
 
@@ -331,6 +296,29 @@
         }
     }
  }
+
+ void sanity_check_starting_positions(SharksAndMinnows* env) {
+    for (int m = 0; m < env->num_minnows; m++) {
+        Agent* minnow = &env->minnows[m];
+        assert(minnow->y == env->height - 1);
+        assert(minnow->x >= 0 && minnow->x < env->width);
+    }
+    for (int s = 0; s < env->num_sharks; s++) {
+        Shark* shark = &env->sharks[s];
+        assert(shark->y >= 0 && shark->y < (env->height/2));
+        assert(shark->x >= 0 && shark->x < env->width);
+      
+    }
+ }
+
+ // Required function
+ void c_reset(SharksAndMinnows* env) {
+     reset_minnows(env);
+     reset_sharks(env);
+     compute_observations(env);
+     sanity_check_starting_positions(env);
+ }
+
 
  int clip(int val, int min, int max) {
      if (val < min) {
