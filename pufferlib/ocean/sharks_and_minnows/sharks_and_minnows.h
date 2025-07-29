@@ -278,19 +278,35 @@
  }
 
  void print_shark_positions(SharksAndMinnows* env) {
-     printf("Shark positions:\n");
      for (int s = 0; s < env->num_sharks; s++) {
          Shark* shark = &env->sharks[s];
          printf("Shark %d: x=%d, y=%d\n", s, shark->x, shark->y);
      }
  }
 
+ void check_shark_positions(SharksAndMinnows* env) {
+    for (int s = 0; s < env->num_sharks; s++) {
+        Shark* shark = &env->sharks[s];
+        if (shark->x < 0 || shark->x >= env->width || shark->y <= 0 || shark->y >= env->height - 1) {
+            printf("Shark %d is out of valid range: x=%d, y=%d\n", s, shark->x, shark->y);
+        }
+    }
+}
+
  void print_minnow_positions(SharksAndMinnows* env) {
-     printf("Minnow positions:\n");
      for (int m = 0; m < env->num_minnows; m++) {
          Agent* minnow = &env->minnows[m];
          printf("Minnow %d: x=%d, y=%d\n", m, minnow->x, minnow->y);
      }
+ }
+
+ void check_minnow_positions(SharksAndMinnows* env) {
+    for (int m = 0; m < env->num_minnows; m++) {
+        Agent* minnow = &env->minnows[m];
+        if (minnow->x < 0 || minnow->x >= env->width || minnow->y < 0 || minnow->y >= env->height) {
+            printf("Minnow %d is out of valid range: x=%d, y=%d\n", m, minnow->x, minnow->y);
+        }
+    }
  }
 
  float clip(float val, float min, float max) {
@@ -353,13 +369,13 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         float best_x = shark->x, best_y = shark->y;
         float best_dist = distance(shark->x, shark->y, minnow_x, minnow_y);
         
-        for (int d = 0; d < 5; d++) {
+        for (int d = 1; d < 5; d++) {
             float nx = shark->x + dirs[d][0];
             float ny = shark->y + dirs[d][1];
             nx = clip(nx, 0, env->width - 1);
             ny = clip(ny, 0, env->height - 1);
             float d_to_m = distance(nx, ny, minnow_x, minnow_y);
-            if (ny == env->height - 1) {
+            if (ny == env->height - 1 || ny == 0) {
                 d_to_m = 1e9;
             }
             if (d_to_m < best_dist) {
@@ -376,8 +392,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  
  // Required function
  void c_step(SharksAndMinnows* env) {
-    //print_shark_positions(env);
-    //print_minnow_positions(env);
+    check_shark_positions(env);
+    check_minnow_positions(env);
      move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
      for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
