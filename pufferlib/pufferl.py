@@ -896,6 +896,8 @@ class WandbLogger:
  
 def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     args = args or load_config(env_name)
+    print("PuffeRL - args['env']['num_envs']:", args['env']['num_envs'])
+    print("PuffeRL - args['env']['num_agents']:", args['env']['num_agents'])
     print("loaded args/config")
 
     # Assume TorchRun DDP is used if LOCAL_RANK is set
