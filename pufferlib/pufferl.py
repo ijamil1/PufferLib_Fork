@@ -102,6 +102,8 @@ class PuffeRL:
 
         print("segments: ", segments)
         print("total_agents: ", total_agents)
+        time.sleep(5)
+
         device = config['device']
         self.observations = torch.zeros(segments, horizon, *obs_space.shape,
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[obs_space.dtype],
