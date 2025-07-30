@@ -109,7 +109,7 @@ class PuffeRL:
 
         print("segments: ", segments)
         print("total_agents: ", total_agents)
-        time.sleep(5)
+        time.sleep(15)
 
         device = config['device']
         self.observations = torch.zeros(segments, horizon, *obs_space.shape,
