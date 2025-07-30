@@ -80,6 +80,8 @@ class PuffeRL:
         atn_space = vecenv.single_action_space
         total_agents = vecenv.num_agents
         self.total_agents = total_agents
+        print("PuffeRL - total_agents:", total_agents)
+        print("PuffeRL - vecenv.num_agents:", vecenv.num_agents)
 
         # Experience
         if config['batch_size'] == 'auto' and config['bptt_horizon'] == 'auto':
@@ -238,13 +240,16 @@ class PuffeRL:
         self.full_rows = 0
         while self.full_rows < self.segments:
             profile('env', epoch)
-            o, r, d, t, info, env_id, mask = self.vecenv.recv()
-            print(o.shape)
-            print(r.shape)
-            print(d.shape)
-            print(t.shape)    
-            print(env_id.shape)
-            print(env_id)
+            o, r, d, t, info, env_id, mask = self.vecenv.recv()    
+            
+
+            print("evaluate - self.total_agents:", self.total_agents)
+            print("evaluate - vecenv.num_agents:", self.vecenv.num_agents)
+            print("evaluate - vecenv.agent_ids shape:", self.vecenv.agent_ids.shape)
+            print("evaluate - vecenv.agent_ids max:", self.vecenv.agent_ids.max())
+
+            print("evaluate - env_id: ", env_id)
+            print("evaluate - vecenv.agent_ids: ", self.vecenv.agent_ids)
        
 
             profile('eval_misc', epoch)
