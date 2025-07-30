@@ -98,6 +98,8 @@ class PuffeRL:
                 f'Total agents {total_agents} <= segments {segments}'
             )
 
+        print("segments: ", segments)
+        print("total_agents: ", total_agents)
         device = config['device']
         self.observations = torch.zeros(segments, horizon, *obs_space.shape,
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[obs_space.dtype],
@@ -237,6 +239,13 @@ class PuffeRL:
         while self.full_rows < self.segments:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()
+            print(o.shape)
+            print(r.shape)
+            print(d.shape)
+            print(t.shape)    
+            print(env_id.shape)
+            print(env_id)
+       
 
             profile('eval_misc', epoch)
             env_id = slice(env_id[0], env_id[-1] + 1)
@@ -275,6 +284,7 @@ class PuffeRL:
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
+                print("l: ", l)
                 batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
 
                 if config['cpu_offload']:
