@@ -919,6 +919,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
         os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 
     vecenv = vecenv or load_env(env_name, args)
+    print("PuffeRL (in outer train method) - vecenv type:", type(vecenv))
     print("created/loaded vecenv")
 
     policy = policy or load_policy(args, vecenv, env_name)
