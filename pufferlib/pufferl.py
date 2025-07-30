@@ -75,6 +75,13 @@ class PuffeRL:
         #torch.manual_seed(seed)
 
         # Vecenv info
+
+        print("PuffeRL - vecenv type:", type(vecenv))
+        if hasattr(vecenv, 'driver_env'):
+            print("PuffeRL - driver_env.num_agents:", vecenv.driver_env.num_agents)
+        if hasattr(vecenv, 'envs'):
+            print("PuffeRL - len(vecenv.envs):", len(vecenv.envs))
+            print("PuffeRL - vecenv.envs[0].num_agents:", vecenv.envs[0].num_agents)
         vecenv.async_reset(seed)
         obs_space = vecenv.single_observation_space
         atn_space = vecenv.single_action_space
