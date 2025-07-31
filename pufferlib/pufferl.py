@@ -241,7 +241,6 @@ class PuffeRL:
         while self.full_rows < self.segments:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()    
-            print("env_id: ", env_id)
             profile('eval_misc', epoch)
             env_id = slice(env_id[0], env_id[-1] + 1)
 
