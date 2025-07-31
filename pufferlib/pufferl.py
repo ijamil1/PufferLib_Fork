@@ -292,6 +292,7 @@ class PuffeRL:
                 self.rewards[batch_rows, l] = r
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
+                print("finished adding current timestep obs, actions, rewards, terminals, values to stored arrays")
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
@@ -319,6 +320,7 @@ class PuffeRL:
                         self.stats[k].append(v)
 
             profile('env', epoch)
+            print("sending actions to vecenv")
             self.vecenv.send(action)
 
         profile('eval_misc', epoch)
