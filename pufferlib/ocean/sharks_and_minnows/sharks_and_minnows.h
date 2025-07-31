@@ -185,11 +185,13 @@
 
  void reset_single_minnow(SharksAndMinnows* env, int m) {
     int unique = 0;
+    int attempts = 0;
     while (!unique) {
         int x = rand() % env->width;
         int y = env->height - 1;
 
         unique = 1;
+        attempts++;
         for (int t = 0; t < env->num_minnows; t++) {
             if (env->minnows[t].x == x && env->minnows[t].y == y) {
                 unique = 0;
@@ -213,6 +215,15 @@
             env->minnows[m].y = y;
             env->minnows[m].prev_y = y;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
+        }
+        if (attempts > 1000) {
+            printf("DEBUG: Failed to reset minnow %d after 1000 attempts\n", m);
+            for (int t = 0; t < env->num_minnows; t++) {
+                printf("DEBUG: Minnow %d is at x=%d, y=%d\n", t, env->minnows[t].x, env->minnows[t].y);
+            }
+            for (int s = 0; s < env->num_sharks; s++) {
+                printf("DEBUG: Shark %d is at x=%d, y=%d\n", s, env->sharks[s].x, env->sharks[s].y);
+            }
         }
     }
  }
@@ -404,6 +415,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
          env->rewards[m] = 0;
          if (env->terminals[m]) {
             //if minnow is in a terminal state, reset the state and reset the terminal flag and move on to the next minnow
+            printf("DEBUG: Minnow %d is in a terminal state, resetting\n", m);
             reset_single_minnow(env, m);
             env->terminals[m] = 0;
             continue;
