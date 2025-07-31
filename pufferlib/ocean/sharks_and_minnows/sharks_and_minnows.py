@@ -21,10 +21,7 @@ class SharksAndMinnows(pufferlib.PufferEnv):
         self.num_minnows = num_envs*num_minnows
         self.log_interval = log_interval
         self.num_agents = num_envs*num_minnows
-        print("sharks_and_minnows - num_envs:", num_envs)
-        print("sharks_and_minnows - num_minnows:", num_minnows)
-        print("sharks_and_minnows - self.num_agents:", self.num_agents)
-       
+   
         assert buf == None
         super().__init__(buf)
         c_envs = []

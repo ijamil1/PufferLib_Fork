@@ -76,20 +76,12 @@ class PuffeRL:
 
         # Vecenv info
 
-        print("PuffeRL - vecenv type:", type(vecenv))
-        if hasattr(vecenv, 'driver_env'):
-            print("PuffeRL - driver_env.num_agents:", vecenv.driver_env.num_agents)
-        if hasattr(vecenv, 'envs'):
-            print("PuffeRL - len(vecenv.envs):", len(vecenv.envs))
-            print("PuffeRL - vecenv.envs[0].num_agents:", vecenv.envs[0].num_agents)
         vecenv.async_reset(seed)
         obs_space = vecenv.single_observation_space
         atn_space = vecenv.single_action_space
         total_agents = vecenv.num_agents
         self.total_agents = total_agents
-        print("PuffeRL - total_agents:", total_agents)
-        print("PuffeRL - vecenv.num_agents:", vecenv.num_agents)
-
+ 
         # Experience
         if config['batch_size'] == 'auto' and config['bptt_horizon'] == 'auto':
             raise pufferlib.APIUsageError('Must specify batch_size or bptt_horizon')
@@ -107,9 +99,7 @@ class PuffeRL:
                 f'Total agents {total_agents} <= segments {segments}'
             )
 
-        print("segments: ", segments)
-        print("total_agents: ", total_agents)
-        time.sleep(15)
+      
 
         device = config['device']
         self.observations = torch.zeros(segments, horizon, *obs_space.shape,
@@ -251,16 +241,6 @@ class PuffeRL:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()    
             
-
-            print("evaluate - self.total_agents:", self.total_agents)
-            print("evaluate - vecenv.num_agents:", self.vecenv.num_agents)
-            print("evaluate - vecenv.agent_ids shape:", self.vecenv.agent_ids.shape)
-            print("evaluate - vecenv.agent_ids max:", self.vecenv.agent_ids.max())
-
-            print("evaluate - env_id: ", env_id)
-            print("evaluate - vecenv.agent_ids: ", self.vecenv.agent_ids)
-       
-
             profile('eval_misc', epoch)
             env_id = slice(env_id[0], env_id[-1] + 1)
 
@@ -298,7 +278,7 @@ class PuffeRL:
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
-                print("l: ", l)
+        
                 batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
 
                 if config['cpu_offload']:
@@ -329,7 +309,6 @@ class PuffeRL:
 
 
             for i in info:
-                print(i)
                 for k, v in pufferlib.unroll_nested_dict(i):
                     if isinstance(v, np.ndarray):
                         v = v.tolist()
@@ -903,10 +882,7 @@ class WandbLogger:
  
 def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     args = args or load_config(env_name)
-    print("PuffeRL - args['env']['num_envs']:", args['env']['num_envs'])
-    print("PuffeRL - args['env']['num_agents']:", args['env']['num_agents'])
-    print("loaded args/config")
-
+    
     # Assume TorchRun DDP is used if LOCAL_RANK is set
     if 'LOCAL_RANK' in os.environ:
         world_size = int(os.environ.get('WORLD_SIZE', 1))
@@ -919,8 +895,6 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
         os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 
     vecenv = vecenv or load_env(env_name, args)
-    print("PuffeRL (in outer train method) - vecenv type:", type(vecenv))
-    print("created/loaded vecenv")
 
     policy = policy or load_policy(args, vecenv, env_name)
 
@@ -945,15 +919,11 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
 
     train_config = dict(**args['train'], env=env_name)
     pufferl = PuffeRL(train_config, vecenv, policy, logger)
-    print("configured pufferl instance")
 
     all_logs = []
-    print('entering training loop')
     while pufferl.global_step < train_config['total_timesteps']:
         pufferl.evaluate()
-        #print('finished a rollout')
         logs = pufferl.train()
-        #print('finished training on prior rollout')
 
         if logs is not None:
             if pufferl.global_step > 0.20*train_config['total_timesteps']:
@@ -962,9 +932,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     # Final eval. You can reset the env here, but depending on
     # your env, this can skew data (i.e. you only collect the shortest
     # rollouts within a fixed number of epochs)
-    print('exited training loop')
     log_interval = 256 * 4
-    print('beginning final eval')
     i = 0
     while i < log_interval/args['train']['bptt_horizon']:
         pufferl.evaluate()
@@ -975,8 +943,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     if logs is not None:
         all_logs.append(logs)
 
-    #pufferl.print_dashboard()
-    print(pufferl.stats)
+    pufferl.print_dashboard()
     
     model_path = pufferl.close()
     pufferl.logger.close(model_path)
@@ -1118,8 +1085,7 @@ def load_env(env_name, args):
     module_name = 'pufferlib.ocean' if package == 'ocean' else f'pufferlib.environments.{package}'
     env_module = importlib.import_module(module_name)
     make_env = env_module.env_creator(env_name)
-    print("load_env - args['env']:", args['env'])
-    print("load_env - args['vec']:", args['vec'])
+
     return pufferlib.vector.make(make_env, env_kwargs=args['env'], **args['vec'])
 
 def load_policy(args, vecenv, env_name=''):
@@ -1128,12 +1094,12 @@ def load_policy(args, vecenv, env_name=''):
     env_module = importlib.import_module(module_name)
 
     device = args['train']['device']
-    policy_cls = getattr(env_module.torch, args['policy_name'])
+    policy_cls = getattr(env_module.torch, args['policy_name']) #pufferlib.models.Default
     policy = policy_cls(vecenv.driver_env, **args['policy'])
 
-    rnn_name = args['rnn_name']
+    rnn_name = args['rnn_name'] #Recurrent
     if rnn_name is not None:
-        rnn_cls = getattr(env_module.torch, args['rnn_name'])
+        rnn_cls = getattr(env_module.torch, args['rnn_name']) #pufferlib.models.LSTMWrapper
         policy = rnn_cls(vecenv.driver_env, policy, **args['rnn'])
 
     policy = policy.to(device)
@@ -1247,7 +1213,6 @@ def main():
     env_name = sys.argv.pop(1)
     if mode == 'train':
         all_logs = train(env_name=env_name)
-        print(all_logs[-3:])
     elif mode == 'eval':
         eval(env_name=env_name)
     elif mode == 'sweep':

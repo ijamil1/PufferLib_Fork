@@ -71,7 +71,7 @@ class PufferEnv:
         self.agent_ids = np.arange(self.num_agents)
 
     @property
-    def agent_per_batch(self):
+    def agents_per_batch(self):
         return self.num_agents
 
     @property
