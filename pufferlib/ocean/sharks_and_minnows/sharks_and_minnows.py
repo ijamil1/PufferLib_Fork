@@ -44,10 +44,11 @@ class SharksAndMinnows(pufferlib.PufferEnv):
         return self.observations, []
 
     def step(self, actions):
+        print("in step function of sharks_and_minnows vecenv")
         self.tick += 1
         self.actions[:] = actions
         binding.vec_step(self.c_envs)
-
+        print("finished binding.vec_step")
         info = []
         if self.tick % self.log_interval == 0:
             log = binding.vec_log(self.c_envs)
