@@ -322,6 +322,7 @@ class PuffeRL:
             profile('env', epoch)
             print("sending actions to vecenv")
             self.vecenv.send(action)
+            print("vecenv finished taking actions")
 
         profile('eval_misc', epoch)
         self.free_idx = self.total_agents
