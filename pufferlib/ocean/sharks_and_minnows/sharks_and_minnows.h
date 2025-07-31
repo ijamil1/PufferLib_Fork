@@ -398,6 +398,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    printf("DEBUG: Sharks moved, processing minnows\n");
+
     for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
          if (env->terminals[m]) {
@@ -442,6 +444,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     }
     update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
     compute_observations(env);
+    printf("DEBUG: Minnows processed, rewards updated, observations computed\n");
 }
  
  // Required function. Should handle creating the client on first call
