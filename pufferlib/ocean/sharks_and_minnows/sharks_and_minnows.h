@@ -185,46 +185,26 @@
 
  void reset_single_minnow(SharksAndMinnows* env, int m) {
     int unique = 0;
-    int attempts = 0;
     while (!unique) {
         int x = rand() % env->width;
         int y = env->height - 1;
 
         unique = 1;
-        attempts++;
+        
         for (int t = 0; t < env->num_minnows; t++) {
             if (env->minnows[t].x == x && env->minnows[t].y == y) {
                 unique = 0;
                 break;
             }
         }
-        // Check minimum distance to sharks
-        float min_shark_dist = 1e9;
-        for (int s = 0; s < env->num_sharks; s++) {
-            float dist = sqrt(pow(x - env->sharks[s].x, 2) + pow(y - env->sharks[s].y, 2));
-            if (dist < min_shark_dist) {
-                min_shark_dist = dist;
-            }
-        }
-        if (min_shark_dist < 64) {
-            unique = 0;
-        }
-
+       
         if (unique) {
             env->minnows[m].x = x;
             env->minnows[m].y = y;
             env->minnows[m].prev_y = y;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
         }
-        if (attempts > 1000) {
-            printf("DEBUG: Failed to reset minnow %d after 1000 attempts\n", m);
-            for (int t = 0; t < env->num_minnows; t++) {
-                printf("DEBUG: Minnow %d is at x=%d, y=%d\n", t, env->minnows[t].x, env->minnows[t].y);
-            }
-            for (int s = 0; s < env->num_sharks; s++) {
-                printf("DEBUG: Shark %d is at x=%d, y=%d\n", s, env->sharks[s].x, env->sharks[s].y);
-            }
-        }
+    
     }
  }
 
@@ -409,13 +389,13 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
-    printf("DEBUG: Sharks moved, processing minnows\n");
+    //printf("DEBUG: Sharks moved, processing minnows\n");
 
     for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
          if (env->terminals[m]) {
             //if minnow is in a terminal state, reset the state and reset the terminal flag and move on to the next minnow
-            printf("DEBUG: Minnow %d is in a terminal state, resetting\n", m);
+            //printf("DEBUG: Minnow %d is in a terminal state, resetting\n", m);
             reset_single_minnow(env, m);
             env->terminals[m] = 0;
             continue;
@@ -454,11 +434,11 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             minnow->y = env->height - 1;
         }
     }
-    printf("DEBUG: Minnows moved\n");
+    //printf("DEBUG: Minnows moved\n");
     update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
-    printf("DEBUG: Rewards set\n");
+    //printf("DEBUG: Rewards set\n");
     compute_observations(env);
-    printf("DEBUG: Observations computed\n");
+    //printf("DEBUG: Observations computed\n");
 }
  
  // Required function. Should handle creating the client on first call

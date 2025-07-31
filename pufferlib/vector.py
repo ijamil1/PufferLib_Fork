@@ -621,9 +621,6 @@ def make(env_creator_or_creators, env_args=None, env_kwargs=None, backend=Puffer
     if num_envs != int(num_envs):
         raise pufferlib.APIUsageError('num_envs must be an integer')
 
-    print("PuffeRL vector.py - backend:", backend)
-    print("PuffeRL vector.py - num_envs:", num_envs)
-    print("PuffeRL vector.py - env_creator_or_creators:", env_creator_or_creators)
     if isinstance(backend, str):
         try:
             backend = getattr(pufferlib.vector, backend)

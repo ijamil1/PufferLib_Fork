@@ -223,7 +223,7 @@ class PuffeRL:
         return (self.global_step - self.last_log_step) / (time.time() - self.last_log_time)
 
     def evaluate(self):
-        print("entering evaluate")
+        #print("entering evaluate")
         profile = self.profile
         epoch = self.epoch
         profile('eval', epoch)
@@ -279,7 +279,6 @@ class PuffeRL:
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
-                print("l: ", l)
                 batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
 
                 if config['cpu_offload']:
@@ -292,7 +291,6 @@ class PuffeRL:
                 self.rewards[batch_rows, l] = r
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
-                print("finished adding current timestep obs, actions, rewards, terminals, values to stored arrays")
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
@@ -320,9 +318,7 @@ class PuffeRL:
                         self.stats[k].append(v)
 
             profile('env', epoch)
-            print("sending actions to vecenv")
             self.vecenv.send(action)
-            print("vecenv finished taking actions")
 
         profile('eval_misc', epoch)
         self.free_idx = self.total_agents
