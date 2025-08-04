@@ -282,23 +282,23 @@
 
             if (minnow->y < minnow->prev_y) {
                 //reward for moving up towards the goal
-                env->rewards[m] = 0.01f;
-                env->log.score += 0.01f;
+                env->rewards[m] = 0.025f;
+                env->log.score += 0.025f;
             }
             if (min_dist <= 75 && prev_min_shark_dist > 75) {
                 //penalty for getting a little too close to a shark when not already close
-                env->rewards[m] += -0.20f;
-                env->log.score -= 0.20f;
+                env->rewards[m] += -0.1f;
+                env->log.score -= 0.1f;
             }
             else if (prev_min_shark_dist <= 75 && min_dist > prev_min_shark_dist) {
                 //reward for moving away from a shark when already close
-                env->rewards[m] += 0.1f;
-                env->log.score += 0.1f;
+                env->rewards[m] += 0.05f;
+                env->log.score += 0.05f;
             }
             else if (prev_min_shark_dist <= 75 && min_dist < prev_min_shark_dist) {
                 //penalty for moving towards a shark when already close
-                env->rewards[m] += -0.1f;
-                env->log.score -= 0.1f;
+                env->rewards[m] += -0.05f;
+                env->log.score -= 0.05f;
             }
         }
      }
