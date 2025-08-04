@@ -209,9 +209,18 @@
         }
        
         if (unique) {
+            float prev_min_shark_dist = 1e9;
+            for (int s = 0; s < env->num_sharks; s++) {
+                Shark* shark = &env->sharks[s];
+                float dist = sqrt(pow(x - shark->x, 2) + pow(y - shark->y, 2));
+                if (dist < prev_min_shark_dist) {
+                    prev_min_shark_dist = dist;
+                }
+            }
             env->minnows[m].x = x;
             env->minnows[m].y = y;
             env->minnows[m].prev_y = y;
+            env->minnows[m].prev_min_shark_dist = prev_min_shark_dist;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
         }
     
