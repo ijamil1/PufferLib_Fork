@@ -24,5 +24,9 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "up_moves", log->up_moves);
     assign_to_dict(dict, "down_moves", log->down_moves);
     assign_to_dict(dict, "stay_moves", log->stay_moves);
+    assign_to_dict(dict, "left_upwards_diagonal_moves", log->left_upwards_diagonal_moves);
+    assign_to_dict(dict, "right_upwards_diagonal_moves", log->right_upwards_diagonal_moves);
+    assign_to_dict(dict, "left_downwards_diagonal_moves", log->left_downwards_diagonal_moves);
+    assign_to_dict(dict, "right_downwards_diagonal_moves", log->right_downwards_diagonal_moves);
     return 0;
 }

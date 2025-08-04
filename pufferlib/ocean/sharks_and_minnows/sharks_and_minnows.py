@@ -15,7 +15,7 @@ class SharksAndMinnows(pufferlib.PufferEnv):
         self.single_observation_space = gymnasium.spaces.Box(low=0, high=1,
             shape=(2*(num_sharks) + 2,), dtype=np.float32)
         
-        self.single_action_space = gymnasium.spaces.Discrete(5)
+        self.single_action_space = gymnasium.spaces.Discrete(9)
 
         self.render_mode = render_mode
         self.num_minnows = num_envs*num_minnows
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     steps = 0
 
     CACHE = 1024
-    actions = np.random.randint(5, size=(CACHE, 1))
+    actions = np.random.randint(9, size=(CACHE, 1))
 
     i = 0
     import time

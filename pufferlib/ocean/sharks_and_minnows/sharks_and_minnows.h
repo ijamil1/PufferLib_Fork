@@ -18,6 +18,10 @@
      float up_moves;
      float down_moves;
      float stay_moves;
+     float left_upwards_diagonal_moves;
+     float right_upwards_diagonal_moves;
+     float left_downwards_diagonal_moves;
+     float right_downwards_diagonal_moves;
      float episode_return; // Recommended metric: sum of agent rewards over episode
      float episode_length; // Recommended metric: number of steps of agent episode
      float n; // Required as the last field 
@@ -93,6 +97,10 @@
     env->log.up_moves = 0.0f;
     env->log.down_moves = 0.0f;
     env->log.stay_moves = 0.0f;
+    env->log.left_upwards_diagonal_moves = 0.0f;
+    env->log.right_upwards_diagonal_moves = 0.0f;
+    env->log.left_downwards_diagonal_moves = 0.0f;
+    env->log.right_downwards_diagonal_moves = 0.0f;
     env->log.shark_collisions = 0.0f;
     env->log.minnow_goal_reaches = 0.0f;
     env->log.episode_return = 0.0f;
@@ -157,6 +165,7 @@
          env->observations[obs_idx++] = minnow->y/env->height;
      }
  }
+
  
  void reset_minnows(SharksAndMinnows* env) {
      //reset location of all minnows
@@ -272,16 +281,24 @@
             minnow->prev_min_shark_dist = min_dist;
 
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] = 0.01f;
-                env->log.score += 0.01f;
+                //reward for moving up towards the goal
+                env->rewards[m] = 0.001f;
+                env->log.score += 0.001f;
             }
-            if (min_dist <= 64 && min_dist > 48) {
+            if (min_dist <= 75 && prev_min_shark_dist > 75) {
+                //penalty for getting a little too close to a shark when not already close
                 env->rewards[m] += -0.35f;
                 env->log.score -= 0.35f;
             }
-            else if (prev_min_shark_dist <= 64 && min_dist > 64) {
-                env->rewards[m] += 0.35f;
-                env->log.score += 0.35f;
+            else if (prev_min_shark_dist <= 75 && min_dist > prev_min_shark_dist) {
+                //reward for moving away from a shark when already close
+                env->rewards[m] += 0.1f;
+                env->log.score += 0.1f;
+            }
+            else if (prev_min_shark_dist <= 75 && min_dist < prev_min_shark_dist) {
+                //penalty for moving towards a shark when already close
+                env->rewards[m] += -0.1f;
+                env->log.score -= 0.1f;
             }
         }
      }
@@ -438,15 +455,13 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  void c_step(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
-    //move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
-    move_sharks_randomly(env);
-    //printf("DEBUG: Sharks moved, processing minnows\n");
-
+    move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    //move_sharks_randomly(env);
+  
     for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
          if (env->terminals[m]) {
             //if minnow is in a terminal state, reset the state and reset the terminal flag and move on to the next minnow
-            //printf("DEBUG: Minnow %d is in a terminal state, resetting\n", m);
             reset_single_minnow(env, m);
             env->terminals[m] = 0;
             continue;
@@ -471,11 +486,32 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             // move down (ie: y increases)
             env->log.down_moves += 1.0f;
             minnow->y += 1;
-        } else {
+        } else if (env->actions[m] == 4) {
             // move left (ie: x decreases)
             env->log.left_moves += 1.0f;
             minnow->x -= 1;
+        } else if (env->actions[m] == 5) {
+            // move left upwards diagonally (ie: x decreases, y decreases)
+            env->log.left_upwards_diagonal_moves += 1.0f;
+            minnow->x -= 1;
+            minnow->y -= 1;
+        } else if (env->actions[m] == 6) {
+            // move right upwards diagonally (ie: x increases, y decreases)
+            env->log.right_upwards_diagonal_moves += 1.0f;
+            minnow->x += 1;
+            minnow->y -= 1;
+        } else if (env->actions[m] == 7) {
+            // move left downwards diagonally (ie: x decreases, y increases)
+            env->log.left_downwards_diagonal_moves += 1.0f;
+            minnow->x -= 1;
+            minnow->y += 1;
+        } else if (env->actions[m] == 8) {
+            // move right downwards diagonally (ie: x increases, y increases)
+            env->log.right_downwards_diagonal_moves += 1.0f;
+            minnow->x += 1;
+            minnow->y += 1;
         }
+        
                  
         minnow->x = clip(minnow->x, 0, env->width - 1);
         minnow->y = clip(minnow->y, 0, env->height - 1); 
