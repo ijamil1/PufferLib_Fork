@@ -281,24 +281,24 @@
             minnow->prev_min_shark_dist = min_dist;
 
             if (minnow->y < minnow->prev_y) {
-                //reward for moving up towards the goal
-                env->rewards[m] = 0.025f;
-                env->log.score += 0.025f;
+                //reward for moving up towards the goal (reduced to encourage shark avoidance)
+                env->rewards[m] = 0.015f;
+                env->log.score += 0.015f;
             }
             if (min_dist <= 75 && prev_min_shark_dist > 75) {
                 //penalty for getting a little too close to a shark when not already close
-                env->rewards[m] = -0.15f;
-                env->log.score -= 0.15f;
+                env->rewards[m] = -0.2f;
+                env->log.score -= 0.2f;
             }
             else if (prev_min_shark_dist <= 75 && min_dist > prev_min_shark_dist) {
                 //reward for moving away from a shark when already close
-                env->rewards[m] += 0.1f;
-                env->log.score += 0.1f;
+                env->rewards[m] += 0.2f;
+                env->log.score += 0.2f;
             }
             else if (prev_min_shark_dist <= 75 && min_dist < prev_min_shark_dist) {
                 //penalty for moving towards a shark when already close
-                env->rewards[m] = -0.05f;
-                env->log.score -= 0.05f;
+                env->rewards[m] = -0.2f;
+                env->log.score -= 0.2f;
             }
         }
      }
@@ -407,13 +407,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     for (int s = 0; s < env->num_sharks; s++) {
         float r = (float)rand() / RAND_MAX;
         Shark* shark = &env->sharks[s];
-        // 60% chance to move randomly instead of chasing minnows
-        if (r > 0.4) {
-            int random_dir = rand() % 5; // 0-4 for stay,up,right,down,left
-            shark->x = clip(shark->x + dirs[random_dir][0], 0, env->width - 1);
-            shark->y = clip(shark->y + dirs[random_dir][1], 1, env->height - 2);
-            continue;
-        }
+
         // Find closest minnow
         float min_dist = 1e9;
         float minnow_x = 0, minnow_y = 0;
