@@ -237,72 +237,155 @@
  }
 
  void update_rewards(SharksAndMinnows* env) {
-     //depending on the location of the minnow and the shark, update the reward
-     for (int m=0; m<env->num_minnows; m++) {
+    const float GOAL_REWARD = 1.0f;
+    const float CAPTURE_PENALTY = -1.0f;
+    const float UPWARD_REWARD = 0.005f;
+    const float EVASION_WEIGHT = 0.005f;
+    const float SURVIVAL_REWARD = 0.002f;
+    const float DANGER_RADIUS = 70.0f;
+    const float CAPTURE_RADIUS = 40.0f;
+
+    for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
-        int collision = 0;
+        float reward = 0.0f;
         float min_dist = 1e9;
-        for (int s=0; s<env->num_sharks; s++) {
+        int captured = 0;
+
+        for (int s = 0; s < env->num_sharks; s++) {
             Shark* shark = &env->sharks[s];
-            float dist = sqrt(pow(minnow->x - shark->x, 2) + pow(minnow->y - shark->y, 2));
-            if (dist < min_dist) {
-                min_dist = dist;
-            }
-            if (dist <= 48) {
-                env->rewards[m] = -1.0f;
-                env->log.perf -= 1.0f;
-                env->log.score -= 1.0f;
+            float dx = minnow->x - shark->x;
+            float dy = minnow->y - shark->y;
+            float dist = sqrt(dx * dx + dy * dy);
+
+            if (dist < min_dist) min_dist = dist;
+            if (dist <= CAPTURE_RADIUS) {
+                // Terminal event: captured
+                reward = CAPTURE_PENALTY;
+                env->terminals[m] = 1;
+                env->log.perf += CAPTURE_PENALTY;
+                env->log.score += CAPTURE_PENALTY;
                 env->log.episode_length += minnow->ticks_since_reward;
-                minnow->ticks_since_reward = 0;
-                env->log.episode_return -= 1.0f;
+                env->log.episode_return += CAPTURE_PENALTY;
+                env->log.shark_collisions += 1.0f;
                 env->log.n++;
-                collision = 1;
+                minnow->ticks_since_reward = 0;
+                captured = 1;
                 break;
             }
         }
-        if (collision) {
-            env->log.shark_collisions += 1.0f;
-            env->terminals[m] = 1;
+
+        if (captured) {
+            env->rewards[m] = reward;
             continue;
         }
-        if (minnow->y == 0) {
-            env->rewards[m] = 1.0f;
-            env->log.perf += 1.0f;
-            env->log.score += 1.0f;
-            env->log.episode_length += minnow->ticks_since_reward;
-            minnow->ticks_since_reward = 0;
-            env->log.episode_return += 1.0f;
-            env->log.n++;
-            env->log.minnow_goal_reaches += 1.0f;
-            env->terminals[m] = 1;
-        }
-        else {
-            float prev_min_shark_dist = minnow->prev_min_shark_dist;
-            minnow->prev_min_shark_dist = min_dist;
 
-            if (minnow->y < minnow->prev_y) {
-                //reward for moving up towards the goal (reduced to encourage shark avoidance)
-                env->rewards[m] = 0.015f;
-                env->log.score += 0.015f;
-            }
-            if (min_dist <= 75 && prev_min_shark_dist > 75) {
-                //penalty for getting a little too close to a shark when not already close
-                env->rewards[m] = -0.2f;
-                env->log.score -= 0.2f;
-            }
-            else if (prev_min_shark_dist <= 75 && min_dist > prev_min_shark_dist) {
-                //reward for moving away from a shark when already close
-                env->rewards[m] += 0.2f;
-                env->log.score += 0.2f;
-            }
-            else if (prev_min_shark_dist <= 75 && min_dist < prev_min_shark_dist) {
-                //penalty for moving towards a shark when already close
-                env->rewards[m] = -0.2f;
-                env->log.score -= 0.2f;
-            }
+        if (minnow->y <= 0.0f) {
+            // Terminal event: reached goal
+            reward = GOAL_REWARD;
+            env->terminals[m] = 1;
+            env->log.perf += GOAL_REWARD;
+            env->log.score += GOAL_REWARD;
+            env->log.episode_length += minnow->ticks_since_reward;
+            env->log.episode_return += GOAL_REWARD;
+            env->log.minnow_goal_reaches += 1.0f;
+            env->log.n++;
+            minnow->ticks_since_reward = 0;
+            env->rewards[m] = reward;
+            continue;
         }
-     }
- }
+
+        // --- Shaping rewards ---
+        // (1) Survival
+        reward += SURVIVAL_REWARD;
+
+        // (2) Upward movement (only if not in danger zone)
+        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS) {
+            reward += UPWARD_REWARD;
+        }
+
+        // (3) Evasion reward: move away from nearby shark
+        float prev_dist = minnow->prev_min_shark_dist;
+        float dist_diff = min_dist - prev_dist;
+        if (min_dist < DANGER_RADIUS) {
+            reward += EVASION_WEIGHT * dist_diff;
+        }
+
+        // --- Bookkeeping ---
+        minnow->prev_min_shark_dist = min_dist;
+        env->rewards[m] = reward;
+        env->log.score += reward;
+        env->log.episode_return += reward;
+    }
+}
+
+
+ //void update_rewards(SharksAndMinnows* env) {
+     //depending on the location of the minnow and the shark, update the reward
+ //    for (int m=0; m<env->num_minnows; m++) {
+ //       Agent* minnow = &env->minnows[m];
+ //       int collision = 0;
+ //       float min_dist = 1e9;
+ //       for (int s=0; s<env->num_sharks; s++) {
+ //           Shark* shark = &env->sharks[s];
+ //           float dist = sqrt(pow(minnow->x - shark->x, 2) + pow(minnow->y - shark->y, 2));
+ //           if (dist < min_dist) {
+ //               min_dist = dist;
+ //           }
+ //           if (dist <= 48) {
+ //               env->rewards[m] = -1.0f;
+ //               env->log.perf -= 1.0f;
+ //               env->log.score -= 1.0f;
+ //               env->log.episode_length += minnow->ticks_since_reward;
+ //               minnow->ticks_since_reward = 0;
+ //               env->log.episode_return -= 1.0f;
+ //               env->log.n++;
+ //               collision = 1;
+ //               break;
+ //           }
+  //      }
+ //       if (collision) {
+ //           env->log.shark_collisions += 1.0f;
+ //           env->terminals[m] = 1;
+ //           continue;
+ //       }
+ //       if (minnow->y == 0) {
+ //           env->rewards[m] = 1.0f;
+ //           env->log.perf += 1.0f;
+ //           env->log.score += 1.0f;
+ //           env->log.episode_length += minnow->ticks_since_reward;
+ //           minnow->ticks_since_reward = 0;
+ //           env->log.episode_return += 1.0f;
+ //           env->log.n++;
+ //           env->log.minnow_goal_reaches += 1.0f;
+ //           env->terminals[m] = 1;
+ //       }
+ //       else {
+ //           float prev_min_shark_dist = minnow->prev_min_shark_dist;
+ //           minnow->prev_min_shark_dist = min_dist;
+
+ //           if (minnow->y < minnow->prev_y) {
+ //               //reward for moving up towards the goal (reduced to encourage shark avoidance)
+ //               env->rewards[m] = 0.015f;
+ //               env->log.score += 0.015f;
+ //           }
+ //           if (min_dist <= 75 && prev_min_shark_dist > 75) {
+ //               //penalty for getting a little too close to a shark when not already close
+ //               env->rewards[m] = -0.2f;
+ //               env->log.score -= 0.2f;
+ //           }
+ //           else if (prev_min_shark_dist <= 75 && min_dist > prev_min_shark_dist) {
+ //               //reward for moving away from a shark when already close
+ //               env->rewards[m] += 0.2f;
+ //               env->log.score += 0.2f;
+ //           }
+ //           else if (prev_min_shark_dist <= 75 && min_dist < prev_min_shark_dist) {
+                //penalty for moving towards a shark when already close
+ //               env->rewards[m] = -0.2f;
+ //               env->log.score -= 0.2f;
+ //           }
+ //       }
+//     }
+ //}
 
 
  void check_shark_positions(SharksAndMinnows* env) {
