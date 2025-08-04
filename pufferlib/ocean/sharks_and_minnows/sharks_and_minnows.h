@@ -272,8 +272,8 @@
             minnow->prev_min_shark_dist = min_dist;
 
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] = 0.025f;
-                env->log.score += 0.025f;
+                env->rewards[m] = 0.01f;
+                env->log.score += 0.01f;
             }
             if (min_dist <= 64 && min_dist > 48) {
                 env->rewards[m] += -0.35f;
