@@ -32,6 +32,7 @@
      int x;
      int y;
      int prev_y;
+     float prev_min_shark_dist;
      int ticks_since_reward;
  } Agent;
 
@@ -174,9 +175,18 @@
                 }
             }
             if (unique) {
+                float prev_min_shark_dist = 1e9;
+                for (int s = 0; s < env->num_sharks; s++) {
+                    Shark* shark = &env->sharks[s];
+                    float dist = sqrt(pow(x - shark->x, 2) + pow(y - shark->y, 2));
+                    if (dist < prev_min_shark_dist) {
+                        prev_min_shark_dist = dist;
+                    }
+                }
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
                 env->minnows[m].prev_y = y;
+                env->minnows[m].prev_min_shark_dist = prev_min_shark_dist;
                 env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
             }
         }
@@ -249,13 +259,20 @@
             env->terminals[m] = 1;
         }
         else {
+            float prev_min_shark_dist = minnow->prev_min_shark_dist;
+            minnow->prev_min_shark_dist = min_dist;
+
             if (minnow->y < minnow->prev_y) {
-                env->rewards[m] = 0.01f;
-                env->log.score += 0.01f;
+                env->rewards[m] = 0.025f;
+                env->log.score += 0.025f;
             }
             if (min_dist <= 64 && min_dist > 48) {
-                env->rewards[m] = -0.35f;
+                env->rewards[m] += -0.35f;
                 env->log.score -= 0.35f;
+            }
+            else if (prev_min_shark_dist <= 64 && min_dist > 64) {
+                env->rewards[m] += 0.35f;
+                env->log.score += 0.35f;
             }
         }
      }
