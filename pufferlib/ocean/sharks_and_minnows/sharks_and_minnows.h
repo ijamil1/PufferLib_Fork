@@ -466,6 +466,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             env->terminals[m] = 0;
             continue;
          }
+         env->terminals[m] = 0;
          Agent* minnow = &env->minnows[m];
          minnow->ticks_since_reward += 1;
          minnow->prev_y = minnow->y;
