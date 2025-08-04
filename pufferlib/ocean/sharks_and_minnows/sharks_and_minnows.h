@@ -326,6 +326,30 @@ float distance(int x1, int y1, int x2, int y2) {
     return sqrtf(pow(x1 - x2, 2) + pow(y1 - y2, 2));
 }
 
+void move_sharks_randomly(SharksAndMinnows* env) {
+    float dirs[5][2] = {
+        {0, 0},    // stay
+        {0, -1},   // up
+        {1, 0},    // right
+        {0, 1},    // down
+        {-1, 0}    // left
+    };
+
+    for (int s = 0; s < env->num_sharks; s++) {
+        Shark* shark = &env->sharks[s];
+        int random_dir = rand() % 5; // 0-4 for stay,up,right,down,left
+        
+        // Calculate new position
+        int new_x = shark->x + dirs[random_dir][0];
+        int new_y = shark->y + dirs[random_dir][1];
+        
+        // Clip to valid range, keeping sharks away from top/bottom rows
+        shark->x = clip(new_x, 0, env->width - 1);
+        shark->y = clip(new_y, 1, env->height - 2);
+    }
+}
+
+
 // Add this function to move sharks toward closest minnow
 void move_sharks_toward_minnows(SharksAndMinnows* env) {
 
@@ -388,7 +412,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  void c_step(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
-    move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    //move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    move_sharks_randomly(env);
     //printf("DEBUG: Sharks moved, processing minnows\n");
 
     for (int m=0; m<env->num_minnows; m++) {
