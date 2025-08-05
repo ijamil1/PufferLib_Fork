@@ -238,10 +238,9 @@
 
  void update_rewards(SharksAndMinnows* env) {
     const float GOAL_REWARD = 1.0f;
-    const float CAPTURE_PENALTY = -0.1f;
+    const float CAPTURE_PENALTY = 0.0f;
     const float UPWARD_REWARD = 0.005f;
     const float EVASION_WEIGHT = 0.05f;
-    const float SURVIVAL_REWARD = 0.002f;
     const float DANGER_RADIUS = 70.0f;
     const float CAPTURE_RADIUS = 40.0f;
 
@@ -297,15 +296,12 @@
         // --- Shaping rewards ---
 
         
-        // (1) Survival
-        reward += SURVIVAL_REWARD;
-
-        // (2) Upward movement (only if not in danger zone)
-        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS && minnow->y % 3 == 0) {
+        // (1) Upward movement (only if not in danger zone)
+        if (minnow->y < minnow->prev_y && minnow->y % 2 == 0) {
             reward += UPWARD_REWARD;
         }
 
-        // (3) Evasion reward: move away from nearby shark
+        // (2) Evasion reward: move away from nearby shark
         float prev_dist = minnow->prev_min_shark_dist;
         float dist_diff = min_dist - prev_dist;
         if (min_dist < DANGER_RADIUS) {
