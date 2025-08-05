@@ -237,10 +237,10 @@
  }
 
  void update_rewards(SharksAndMinnows* env) {
-    const float GOAL_REWARD = 1.0f;
+    const float GOAL_REWARD = 0.7f;
     const float CAPTURE_PENALTY = -1.0f;
     const float UPWARD_REWARD = 0.005f;
-    const float EVASION_WEIGHT = 0.005f;
+    const float EVASION_WEIGHT = 0.05f;
     const float SURVIVAL_REWARD = 0.002f;
     const float DANGER_RADIUS = 70.0f;
     const float CAPTURE_RADIUS = 40.0f;
@@ -295,6 +295,8 @@
         }
 
         // --- Shaping rewards ---
+
+        
         // (1) Survival
         reward += SURVIVAL_REWARD;
 

@@ -63,9 +63,9 @@ class SharksAndMinnows(pufferlib.PufferEnv):
         binding.vec_close(self.c_envs)
 
 if __name__ == '__main__':
-    N = 512
+    N = 1
 
-    env = SharksAndMinnows(num_envs=N)
+    env = SharksAndMinnows(num_envs=N, num_agents=1)
     env.reset()
     steps = 0
 
