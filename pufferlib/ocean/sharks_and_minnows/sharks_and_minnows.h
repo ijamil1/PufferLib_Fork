@@ -237,8 +237,8 @@
  }
 
  void update_rewards(SharksAndMinnows* env) {
-    const float GOAL_REWARD = 0.7f;
-    const float CAPTURE_PENALTY = -1.0f;
+    const float GOAL_REWARD = 1.0f;
+    const float CAPTURE_PENALTY = -0.1f;
     const float UPWARD_REWARD = 0.005f;
     const float EVASION_WEIGHT = 0.05f;
     const float SURVIVAL_REWARD = 0.002f;
@@ -301,7 +301,7 @@
         reward += SURVIVAL_REWARD;
 
         // (2) Upward movement (only if not in danger zone)
-        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS && minnow->y % 10 == 0) {
+        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS && minnow->y % 3 == 0) {
             reward += UPWARD_REWARD;
         }
 
