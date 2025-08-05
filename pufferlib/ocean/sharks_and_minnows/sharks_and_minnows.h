@@ -301,7 +301,7 @@
         reward += SURVIVAL_REWARD;
 
         // (2) Upward movement (only if not in danger zone)
-        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS) {
+        if (minnow->y < minnow->prev_y && min_dist > DANGER_RADIUS && minnow->y % 10 == 0) {
             reward += UPWARD_REWARD;
         }
 
