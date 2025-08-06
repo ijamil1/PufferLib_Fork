@@ -296,7 +296,7 @@
         // --- Shaping rewards ---
 
         
-        // (1) Upward movement (only if not in danger zone)
+        // (1) Upward movement
         if (minnow->y < minnow->prev_y && minnow->y % 3 == 0) {
             reward += UPWARD_REWARD;
         }
