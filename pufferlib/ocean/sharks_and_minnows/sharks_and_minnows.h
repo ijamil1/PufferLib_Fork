@@ -246,7 +246,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
-    const float OPTIMAL_RESPONSE_PENALTY = 0.05f;
+    const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
 
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
@@ -309,7 +309,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         // --- Shaping rewards ---
 
         // (1) Upward movement
-        if (minnow_direction == UP && minnow->y % 8 == 0 && min_dist > DANGER_RADIUS) {
+        if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && minnow->y % 10 == 0) {
             reward += UPWARD_REWARD;
         }
 
@@ -319,26 +319,26 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
 
         switch (shark_direction) {
             case LEFT:
-                is_optimal = (minnow_direction == UP_LEFT);  // up-left
+                is_optimal = (minnow_direction == UP_LEFT || minnow_direction == LEFT || minnow_direction == DOWN_LEFT);  // moving left
                 break;
             case RIGHT:
-                is_optimal = (minnow_direction == UP_RIGHT);   // up-right
+                is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT);   // moving right
                 break;
             case UP:
-                is_optimal = (minnow_direction == UP || (minnow_direction == UP_LEFT) || (minnow_direction == UP_RIGHT));                  // any upward motion
+                is_optimal = (minnow_direction != DOWN && minnow_direction != DOWN_LEFT && minnow_direction != DOWN_RIGHT); // any upward or lateral motion
                 break;
             case DOWN:
                 if (minnow->x < shark_x) {
                     // if minnow is to the left of shark
-                    is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP);
+                    is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP || minnow_direction == LEFT || minnow_direction == DOWN_LEFT || minnow_direction == DOWN);
                 }
                 else if (minnow->x > shark_x) {
                     // if minnow is to the right of shark
-                    is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == UP);
+                    is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == UP || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT || minnow_direction == DOWN);
                 }
                 else {
                     // if minnow is directly below shark, it can move up or down
-                    is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT); 
+                    is_optimal = (minnow_direction != UP); 
                 }
                 break;
         }
