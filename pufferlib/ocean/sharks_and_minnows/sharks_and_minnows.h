@@ -240,7 +240,7 @@
     const float GOAL_REWARD = 1.0f;
     const float CAPTURE_PENALTY = -1.0f;
     const float UPWARD_REWARD = 0.005f;
-    const float EVASION_WEIGHT = 0.15f;
+    const float EVASION_WEIGHT = 0.05f;
     const float DANGER_RADIUS = 70.0f;
     const float CAPTURE_RADIUS = 40.0f;
 
