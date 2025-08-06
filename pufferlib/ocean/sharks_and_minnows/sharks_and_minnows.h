@@ -305,7 +305,12 @@
         float prev_dist = minnow->prev_min_shark_dist;
         float dist_diff = min_dist - prev_dist;
         if (min_dist < DANGER_RADIUS) {
-            reward += EVASION_WEIGHT * dist_diff;
+            if (dist_diff >= 0) {
+                reward += EVASION_WEIGHT;
+            }
+            else {
+                reward -= EVASION_WEIGHT;
+            }
         }
 
         // --- Bookkeeping ---
