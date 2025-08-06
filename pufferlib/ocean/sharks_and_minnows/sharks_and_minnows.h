@@ -309,7 +309,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         // --- Shaping rewards ---
 
         // (1) Upward movement
-        if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && minnow->y % 3 == 0 && min_dist > DANGER_RADIUS) {
+        if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && minnow->y % 5 == 0 && min_dist > DANGER_RADIUS) {
             reward += UPWARD_REWARD;
         }
 
