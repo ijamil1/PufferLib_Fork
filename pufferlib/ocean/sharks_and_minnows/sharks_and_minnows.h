@@ -241,7 +241,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
  void update_rewards(SharksAndMinnows* env) {
     const float GOAL_REWARD = 1.0f;
     const float CAPTURE_PENALTY = -1.0f;
-    const float UPWARD_REWARD = 0.005f;
+    const float UPWARD_REWARD = 0.002f;
     const float EVASION_WEIGHT = 0.05f;
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
