@@ -44,6 +44,8 @@
      int x;
      int y;
      int direction;
+     int paused;
+     int ticks_since_pause
  } Shark;
  
  typedef struct {
@@ -140,9 +142,16 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             if (unique) {
                 env->sharks[s].x = x;
                 env->sharks[s].y = y;
+                env->sharks[s].direction = rand() % 4;
+                env->sharks[s].paused = 0;
+                env->sharks[s].ticks_since_pause = 0;
             }
         }
     }
+ }
+
+ void pause_single_shark(SharksAndMinnows* env, int s) {
+    env->sharks[s].paused = 1;
  }
  
  /* Recommended to have an observation function of some kind because
@@ -240,15 +249,20 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
 
  void update_rewards(SharksAndMinnows* env) {
     const float GOAL_REWARD = 1.0f;
-    const float CAPTURE_PENALTY = -1.0f;
-    const float UPWARD_REWARD = 0.002f;
-    const float EVASION_WEIGHT = 0.05f;
+    const float UPWARD_REWARD = 0.005f;
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
-    const float OPTIMAL_RESPONSE_REWARD = 0.2f;
-    const float OPTIMAL_RESPONSE_PENALTY = 0.2f;
+    const float OPTIMAL_RESPONSE_REWARD = 0.1f;
+    const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-
+    const float CAPTURE_PENALTY = 0.25f;
+    const float STAY_PENALTY = 0.005f;
+    char shark_capture_ind[env->num_sharks];
+    
+    for (int i = 0; i < env->num_sharks; i++) {
+        shark_capture_ind[i] = 0;
+    }
+   
 
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
@@ -273,27 +287,17 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                 shark_y = shark->y;
             }
             if (dist <= CAPTURE_RADIUS) {
-                // Terminal event: captured
-                reward = CAPTURE_PENALTY;
-                env->terminals[m] = 1;
-                env->log.perf += CAPTURE_PENALTY;
-                env->log.score += CAPTURE_PENALTY;
-                env->log.episode_length += minnow->ticks_since_reward;
-                env->log.episode_return += CAPTURE_PENALTY;
+                // captured
+                reward -= CAPTURE_PENALTY; 
+                env->log.perf -= CAPTURE_PENALTY;
                 env->log.shark_collisions += 1.0f;
-                env->log.n++;
-                minnow->ticks_since_reward = 0;
                 captured = 1;
+                shark_capture_ind[s] = 1;
                 break;
             }
         }
 
-        if (captured) {
-            env->rewards[m] = reward;
-            continue;
-        }
-
-        if (minnow->y <= 0.0f) {
+        if (captured == 0 && minnow->y <= 0.0f) {
             // Terminal event: reached goal
             reward = GOAL_REWARD;
             env->terminals[m] = 1;
@@ -309,47 +313,74 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         }
 
         // --- Shaping rewards ---
-        reward += SURVIVAL_REWARD;
-        // (1) Upward movement
-        if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && minnow->y % 10 == 0) {
-            reward += UPWARD_REWARD;
-        }
 
+        if (captured == 0) {
+            //if not captured, give survival reward
+            reward += SURVIVAL_REWARD;
+
+            if (minnow_direction == STAY) {
+                reward -= STAY_PENALTY;
+            }
+            
+            // if not captured, give upward reward if minnow is moving upward
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_dist > DANGER_RADIUS && minnow->y % 3 == 0) {
+                reward += UPWARD_REWARD;
+            }
         
+            bool is_optimal = false;
 
-        bool is_optimal = false;
+            switch (shark_direction) {
+                case LEFT:
+                    is_optimal = (minnow_direction == UP_LEFT || minnow_direction == LEFT || minnow_direction == DOWN_LEFT);  // moving left
+                    break;
+                case RIGHT:
+                    is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT);   // moving right
+                    break;
+                case UP:
+                    is_optimal = (minnow_direction != DOWN && minnow_direction != DOWN_LEFT && minnow_direction != DOWN_RIGHT); // any upward or lateral motion
+                    break;
+                case DOWN:
+                    if (minnow->x < shark_x) {
+                        // if minnow is to the left of shark
+                        is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP || minnow_direction == LEFT || minnow_direction == DOWN_LEFT || minnow_direction == DOWN);
+                    }
+                    else if (minnow->x > shark_x) {
+                        // if minnow is to the right of shark
+                        is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == UP || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT || minnow_direction == DOWN);
+                    }
+                    else {
+                        // if minnow is directly below shark, it can move up or down
+                        is_optimal = (minnow_direction != UP); 
+                    }
+                    break;
+                case STAY:
+                    if (minnow->x < shark_x) {
+                        // if minnow is to the left of shark
+                        is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP || minnow_direction == LEFT || minnow_direction == DOWN_LEFT || minnow_direction == DOWN);
+                    }
+                    else if (minnow->x > shark_x) {
+                        // if minnow is to the right of shark
+                        is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == UP || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT || minnow_direction == DOWN);
+                    }
+                    else {
+                        // if minnow is directly above/below shark, it can move up or down depnding on the pos of the shark
+                        if (shark_y < minnow->y) {
+                            // if shark is above minnow
+                            is_optimal = (minnow_direction != UP);
+                        }
+                        else {
+                            // if shark is below minnow
+                            is_optimal = (minnow_direction != DOWN);
+                        }
+                    }
+            }
 
-        switch (shark_direction) {
-            case LEFT:
-                is_optimal = (minnow_direction == UP_LEFT || minnow_direction == LEFT || minnow_direction == DOWN_LEFT);  // moving left
-                break;
-            case RIGHT:
-                is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT);   // moving right
-                break;
-            case UP:
-                is_optimal = (minnow_direction != DOWN && minnow_direction != DOWN_LEFT && minnow_direction != DOWN_RIGHT); // any upward or lateral motion
-                break;
-            case DOWN:
-                if (minnow->x < shark_x) {
-                    // if minnow is to the left of shark
-                    is_optimal = (minnow_direction == UP_LEFT || minnow_direction == UP || minnow_direction == LEFT || minnow_direction == DOWN_LEFT || minnow_direction == DOWN);
-                }
-                else if (minnow->x > shark_x) {
-                    // if minnow is to the right of shark
-                    is_optimal = (minnow_direction == UP_RIGHT || minnow_direction == UP || minnow_direction == RIGHT || minnow_direction == DOWN_RIGHT || minnow_direction == DOWN);
-                }
-                else {
-                    // if minnow is directly below shark, it can move up or down
-                    is_optimal = (minnow_direction != UP); 
-                }
-                break;
-        }
-
-        if (is_optimal && min_dist <= DANGER_RADIUS) {
-            reward += OPTIMAL_RESPONSE_REWARD;
-        }
-        else if (min_dist <= DANGER_RADIUS) {
-            reward -= OPTIMAL_RESPONSE_PENALTY;
+            if (is_optimal && min_dist <= DANGER_RADIUS) {
+                reward += OPTIMAL_RESPONSE_REWARD;
+            }
+            else if (min_dist <= DANGER_RADIUS) {
+                reward -= OPTIMAL_RESPONSE_PENALTY;
+            }
         }
 
         // --- Bookkeeping ---
@@ -357,6 +388,13 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         env->rewards[m] = reward;
         env->log.score += reward;
         env->log.episode_return += reward;
+    }
+
+    // need to reset sharks that captured
+    for (int s = 0; s < env->num_sharks; s++) {
+        if (shark_capture_ind[s]) {
+            pause_single_shark(env, s);
+        }
     }
 }
 
@@ -439,6 +477,7 @@ float distance(int x1, int y1, int x2, int y2) {
 // Add this function to move sharks toward closest minnow
 void move_sharks_toward_minnows(SharksAndMinnows* env) {
     int shark_direction = STAY;
+    
     float dirs[5][2] = {
         {0, 0},    // stay
         {0, -1},   // up
@@ -448,6 +487,16 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     };
 
     for (int s = 0; s < env->num_sharks; s++) {
+        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 10) {
+            env->sharks[s].ticks_since_pause += 1;
+            env->sharks[s].direction = STAY;
+            continue;
+        }
+        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 10) {
+            env->sharks[s].paused = 0;
+            env->sharks[s].ticks_since_pause = 0;
+        }
+        
         float r = (float)rand() / RAND_MAX;
         Shark* shark = &env->sharks[s];
         shark_direction = STAY;
