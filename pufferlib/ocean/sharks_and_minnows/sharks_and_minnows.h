@@ -318,10 +318,6 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             //if not captured, give survival reward
             reward += SURVIVAL_REWARD;
 
-            if (minnow_direction == STAY) {
-                reward -= STAY_PENALTY;
-            }
-            
             // if not captured, give upward reward if minnow is moving upward
             if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_dist > DANGER_RADIUS && minnow->y % 3 == 0) {
                 reward += UPWARD_REWARD;
