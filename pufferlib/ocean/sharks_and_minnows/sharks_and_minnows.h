@@ -245,8 +245,10 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float EVASION_WEIGHT = 0.05f;
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
-    const float OPTIMAL_RESPONSE_REWARD = 0.1f;
-    const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
+    const float OPTIMAL_RESPONSE_REWARD = 0.2f;
+    const float OPTIMAL_RESPONSE_PENALTY = 0.2f;
+    const float SURVIVAL_REWARD = 0.01f;
+
 
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
@@ -307,7 +309,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         }
 
         // --- Shaping rewards ---
-
+        reward += SURVIVAL_REWARD;
         // (1) Upward movement
         if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && minnow->y % 10 == 0) {
             reward += UPWARD_REWARD;
