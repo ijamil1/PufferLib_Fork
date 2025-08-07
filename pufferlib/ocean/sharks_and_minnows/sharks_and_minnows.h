@@ -36,7 +36,6 @@
      int x;
      int y;
      int direction;
-     float prev_min_shark_dist;
      int ticks_since_reward;
  } Agent;
 
@@ -45,7 +44,8 @@
      int y;
      int direction;
      int paused;
-     int ticks_since_pause
+     int ticks_since_pause;
+     int minnow_target;
  } Shark;
  
  typedef struct {
@@ -116,10 +116,12 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
  
  void reset_sharks(SharksAndMinnows* env) {
      // reset location of all sharks
+    int num_sharks = env->num_sharks;
+    int width = env->width;
     for (int s = 0; s < env->num_sharks; s++) {
         int unique = 0;
         while (!unique) {
-            int x = rand() % env->width;
+            int x = rand() % (env->width/num_sharks) + (s * (env->width/num_sharks));
             int y = rand() % (env->height/2); // sharks start in the top half of the grid
 
             unique = 1;
@@ -145,6 +147,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                 env->sharks[s].direction = rand() % 4;
                 env->sharks[s].paused = 0;
                 env->sharks[s].ticks_since_pause = 0;
+                env->sharks[s].minnow_target = -1;
             }
         }
     }
@@ -152,6 +155,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
 
  void pause_single_shark(SharksAndMinnows* env, int s) {
     env->sharks[s].paused = 1;
+    env->sharks[s].minnow_target = -1;
  }
  
  /* Recommended to have an observation function of some kind because
@@ -167,6 +171,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
              Shark* shark = &env->sharks[s];
              env->observations[obs_idx++] = (shark->x - minnow->x)/env->width;
              env->observations[obs_idx++] = (shark->y - minnow->y)/env->height;
+             env->observations[obs_idx++] = (shark->minnow_target == m);
          }
          //for (int a=0; a<env->num_minnows; a++) {
          //    Agent* other = &env->minnows[a];
@@ -182,10 +187,12 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
  
  void reset_minnows(SharksAndMinnows* env) {
      //reset location of all minnows
+    int num_minnows = env->num_minnows;
+    int width = env->width;
      for (int m = 0; m < env->num_minnows; m++) {
         int unique = 0;
         while (!unique) {
-            int x = rand() % env->width;
+            int x = rand() % (env->width/num_minnows) + (m * (env->width/num_minnows));
             int y = env->height - 1;
 
             unique = 1;
@@ -197,17 +204,8 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                 }
             }
             if (unique) {
-                float prev_min_shark_dist = 1e9;
-                for (int s = 0; s < env->num_sharks; s++) {
-                    Shark* shark = &env->sharks[s];
-                    float dist = sqrt(pow(x - shark->x, 2) + pow(y - shark->y, 2));
-                    if (dist < prev_min_shark_dist) {
-                        prev_min_shark_dist = dist;
-                    }
-                }
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
-                env->minnows[m].prev_min_shark_dist = prev_min_shark_dist;
                 env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
             }
         }
@@ -230,17 +228,8 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         }
        
         if (unique) {
-            float prev_min_shark_dist = 1e9;
-            for (int s = 0; s < env->num_sharks; s++) {
-                Shark* shark = &env->sharks[s];
-                float dist = sqrt(pow(x - shark->x, 2) + pow(y - shark->y, 2));
-                if (dist < prev_min_shark_dist) {
-                    prev_min_shark_dist = dist;
-                }
-            }
             env->minnows[m].x = x;
             env->minnows[m].y = y;
-            env->minnows[m].prev_min_shark_dist = prev_min_shark_dist;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
         }
     
@@ -263,7 +252,6 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         shark_capture_ind[i] = 0;
     }
    
-
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
         float reward = 0.0f;
@@ -288,12 +276,13 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             }
             if (dist <= CAPTURE_RADIUS) {
                 // captured
-                reward -= CAPTURE_PENALTY; 
-                env->log.perf -= CAPTURE_PENALTY;
-                env->log.shark_collisions += 1.0f;
+                if (captured == 0) {
+                    reward -= CAPTURE_PENALTY; 
+                    env->log.perf -= CAPTURE_PENALTY;
+                    env->log.shark_collisions += 1.0f;
+                }
                 captured = 1;
                 shark_capture_ind[s] = 1;
-                break;
             }
         }
 
@@ -380,7 +369,6 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         }
 
         // --- Bookkeeping ---
-        minnow->prev_min_shark_dist = min_dist;
         env->rewards[m] = reward;
         env->log.score += reward;
         env->log.episode_return += reward;
@@ -497,6 +485,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         Shark* shark = &env->sharks[s];
         shark_direction = STAY;
         // Find closest minnow
+        int minnow_target = -1;
         float min_dist = 1e9;
         float minnow_x = 0, minnow_y = 0;
         for (int m = 0; m < env->num_minnows; m++) {
@@ -506,6 +495,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
                 min_dist = d;
                 minnow_x = minnow->x;
                 minnow_y = minnow->y;
+                minnow_target = m;
             }
         }
         // Try all possible directions: 0=stay, 1=up, 2=right, 3=down, 4=left
@@ -531,6 +521,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         shark->x = best_x;
         shark->y = best_y;
         shark->direction = shark_direction;
+        shark->minnow_target = minnow_target;
     }
 }
  
@@ -540,7 +531,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
     move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
-    //move_sharks_randomly(env);
+
   
     for (int m=0; m<env->num_minnows; m++) {
          env->rewards[m] = 0;
@@ -615,11 +606,9 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             minnow->y = env->height - 1;
         }
     }
-    //printf("DEBUG: Minnows moved\n");
+
     update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
-    //printf("DEBUG: Rewards set\n");
     compute_observations(env);
-    //printf("DEBUG: Observations computed\n");
 }
  
  // Required function. Should handle creating the client on first call
