@@ -255,7 +255,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
     const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-    const float CAPTURE_PENALTY = 0.25f;
+    const float CAPTURE_PENALTY = 0.35f;
     const float STAY_PENALTY = 0.005f;
     char shark_capture_ind[env->num_sharks];
     
@@ -319,7 +319,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             reward += SURVIVAL_REWARD;
 
             // if not captured, give upward reward if minnow is moving upward
-            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_dist > DANGER_RADIUS && minnow->y % 3 == 0) {
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
                 reward += UPWARD_REWARD;
             }
         
