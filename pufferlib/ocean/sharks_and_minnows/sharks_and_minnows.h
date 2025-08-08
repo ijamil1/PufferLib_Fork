@@ -35,6 +35,9 @@
  typedef struct {
      int x;
      int y;
+     int prev_x;
+     int prev_y;
+     int reset;
      int direction;
      int ticks_since_reward;
  } Agent;
@@ -42,6 +45,8 @@
  typedef struct {
      int x;
      int y;
+     int prev_x;
+     int prev_y;
      int direction;
      int paused;
      int ticks_since_pause;
@@ -232,6 +237,9 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
         if (unique) {
             env->minnows[m].x = x;
             env->minnows[m].y = y;
+            env->minnows[m].prev_x = x;
+            env->minnows[m].prev_y = y;
+            env->minnows[m].reset = 1;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
         }
     
@@ -255,8 +263,13 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
    
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
+        if (minnow->reset) {
+            minnow->reset = 0;
+            continue;
+        }
         float reward = 0.0f;
         float min_chaser_dist = 1e9;
+        float min_global_dist = 1e9;
         int captured = 0;
         int shark_direction = STAY;
         int shark_x = 0;
@@ -268,6 +281,9 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             float dx = minnow->x - shark->x;
             float dy = minnow->y - shark->y;
             float dist = sqrt(dx * dx + dy * dy);
+            if (dist < min_global_dist) {
+                min_global_dist = dist;
+            }
 
             if (shark->minnow_target == m) {
                 shark_direction = shark->direction;
@@ -309,7 +325,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             reward += SURVIVAL_REWARD;
 
             // if not captured, give upward reward if minnow is moving upward
-            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_chaser_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_global_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
                 reward += UPWARD_REWARD;
             }
         
@@ -367,6 +383,32 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             else if (min_chaser_dist <= DANGER_RADIUS) {
                 reward -= OPTIMAL_RESPONSE_PENALTY;
             }
+
+            float evasion_reward = 0.0f;
+            float epsilon = 1e-3;
+
+            for (int i = 0; i < env->num_sharks; i++) {
+                float dx_prev = minnow->prev_x - env->sharks[i].prev_x;
+                float dy_prev = minnow->prev_y - env->sharks[i].prev_y;
+                float d_prev = sqrtf(dx_prev * dx_prev + dy_prev * dy_prev);
+                
+                if (d_prev > DANGER_RADIUS) {
+                    continue;
+                }
+
+                float dx_now = minnow->x - env->sharks[i].x;
+                float dy_now = minnow->y - env->sharks[i].y;
+                float d_now = sqrtf(dx_now * dx_now + dy_now * dy_now);
+
+                float delta = d_now - d_prev;
+                float weight = 1.0f / (d_prev + epsilon);
+
+                evasion_reward += weight * delta;
+            }
+
+            // Optionally scale it
+            evasion_reward *= 0.1f;
+            reward += evasion_reward;
         }
 
         // --- Bookkeeping ---
@@ -479,6 +521,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
 
   
     for (int s = 0; s < env->num_sharks; s++) {
+        env->sharks[s].prev_x = env->sharks[s].x;
+        env->sharks[s].prev_y = env->sharks[s].y;
         if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 5) {
             env->sharks[s].ticks_since_pause += 1;
             env->sharks[s].direction = STAY;
@@ -552,6 +596,8 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             env->terminals[m] = 0;
             continue;
          }
+         env->minnows[m].prev_x = env->minnows[m].x;
+         env->minnows[m].prev_y = env->minnows[m].y;
          env->terminals[m] = 0;
          Agent* minnow = &env->minnows[m];
          minnow->ticks_since_reward += 1;
