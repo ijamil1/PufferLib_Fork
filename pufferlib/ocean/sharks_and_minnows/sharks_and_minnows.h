@@ -461,7 +461,13 @@ float distance(int x1, int y1, int x2, int y2) {
 // Add this function to move sharks toward closest minnow
 void move_sharks_toward_minnows(SharksAndMinnows* env) {
     int shark_direction = STAY;
-    
+    int sharks_set = 0;
+
+    char minnows_chased[env->num_minnows];
+    for (int i = 0; i < env->num_minnows; i++) {
+        minnows_chased[i] = 0;
+    }
+
     float dirs[5][2] = {
         {0, 0},    // stay
         {0, -1},   // up
@@ -470,6 +476,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         {-1, 0}    // left
     };
 
+  
     for (int s = 0; s < env->num_sharks; s++) {
         if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 10) {
             env->sharks[s].ticks_since_pause += 1;
@@ -481,7 +488,6 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
             env->sharks[s].ticks_since_pause = 0;
         }
         
-        float r = (float)rand() / RAND_MAX;
         Shark* shark = &env->sharks[s];
         shark_direction = STAY;
         // Find closest minnow
@@ -489,6 +495,9 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         float min_dist = 1e9;
         float minnow_x = 0, minnow_y = 0;
         for (int m = 0; m < env->num_minnows; m++) {
+            if (minnows_chased[m]) {
+                continue;
+            }
             Agent* minnow = &env->minnows[m];
             float d = distance(shark->x, shark->y, minnow->x, minnow->y);
             if (d < min_dist) {
@@ -498,6 +507,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
                 minnow_target = m;
             }
         }
+        minnows_chased[minnow_target] = 1;
         // Try all possible directions: 0=stay, 1=up, 2=right, 3=down, 4=left
         float best_x = shark->x, best_y = shark->y;
         float best_dist = distance(shark->x, shark->y, minnow_x, minnow_y);
