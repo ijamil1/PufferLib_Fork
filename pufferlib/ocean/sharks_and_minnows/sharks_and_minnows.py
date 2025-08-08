@@ -13,7 +13,7 @@ class SharksAndMinnows(pufferlib.PufferEnv):
         num_sharks = num_agents
         
         self.single_observation_space = gymnasium.spaces.Box(low=0, high=1,
-            shape=(3*(num_sharks) + 2,), dtype=np.float32)
+            shape=(3*(num_sharks) + 2*(num_minnows-1) + 2,), dtype=np.float32)
         
         self.single_action_space = gymnasium.spaces.Discrete(9)
 

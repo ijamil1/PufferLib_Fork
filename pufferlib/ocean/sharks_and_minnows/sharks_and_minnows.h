@@ -173,12 +173,14 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
              env->observations[obs_idx++] = (shark->y - minnow->y)/env->height;
              env->observations[obs_idx++] = (shark->minnow_target == m);
          }
-         //for (int a=0; a<env->num_minnows; a++) {
-         //    Agent* other = &env->minnows[a];
-         //    env->observations[obs_idx++] = (other->x - minnow->x)/env->width;
-         //    env->observations[obs_idx++] = (other->y - minnow->y)/env->height;
-         //}
-         //env->observations[obs_idx++] = env->rewards[m];
+         for (int a=0; a<env->num_minnows; a++) {
+            if (a == m) {
+                continue;
+            }
+             Agent* other = &env->minnows[a];
+             env->observations[obs_idx++] = (other->x - minnow->x)/env->width;
+             env->observations[obs_idx++] = (other->y - minnow->y)/env->height;
+         }
          env->observations[obs_idx++] = minnow->x/env->width;
          env->observations[obs_idx++] = minnow->y/env->height;
      }
@@ -270,6 +272,8 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
 
             if (dist < min_dist) {
                 min_dist = dist;
+            }
+            if (shark->minnow_target == m) {
                 shark_direction = shark->direction;
                 shark_x = shark->x;
                 shark_y = shark->y;
@@ -540,7 +544,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
  void c_step(SharksAndMinnows* env) {
     check_shark_positions(env);
     check_minnow_positions(env);
-    move_sharks_toward_minnows(env); // sharks move first, toward closest minnow
+    move_sharks_toward_minnows(env); // sharks move first, toward distinct minnows
 
   
     for (int m=0; m<env->num_minnows; m++) {
