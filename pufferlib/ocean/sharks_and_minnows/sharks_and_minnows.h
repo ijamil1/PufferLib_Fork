@@ -246,8 +246,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
     const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-    const float CAPTURE_PENALTY = 0.35f;
-    const float STAY_PENALTY = 0.005f;
+    const float CAPTURE_PENALTY = 0.40f;
     char shark_capture_ind[env->num_sharks];
     
     for (int i = 0; i < env->num_sharks; i++) {
@@ -257,7 +256,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     for (int m = 0; m < env->num_minnows; m++) {
         Agent* minnow = &env->minnows[m];
         float reward = 0.0f;
-        float min_dist = 1e9;
+        float min_chaser_dist = 1e9;
         int captured = 0;
         int shark_direction = STAY;
         int shark_x = 0;
@@ -270,13 +269,11 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             float dy = minnow->y - shark->y;
             float dist = sqrt(dx * dx + dy * dy);
 
-            if (dist < min_dist) {
-                min_dist = dist;
-            }
             if (shark->minnow_target == m) {
                 shark_direction = shark->direction;
                 shark_x = shark->x;
                 shark_y = shark->y;
+                min_chaser_dist = dist;
             }
             if (dist <= CAPTURE_RADIUS) {
                 // captured
@@ -312,7 +309,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             reward += SURVIVAL_REWARD;
 
             // if not captured, give upward reward if minnow is moving upward
-            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_chaser_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
                 reward += UPWARD_REWARD;
             }
         
@@ -364,10 +361,10 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                     }
             }
 
-            if (is_optimal && min_dist <= DANGER_RADIUS) {
+            if (is_optimal && min_chaser_dist <= DANGER_RADIUS) {
                 reward += OPTIMAL_RESPONSE_REWARD;
             }
-            else if (min_dist <= DANGER_RADIUS) {
+            else if (min_chaser_dist <= DANGER_RADIUS) {
                 reward -= OPTIMAL_RESPONSE_PENALTY;
             }
         }
@@ -482,12 +479,12 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
 
   
     for (int s = 0; s < env->num_sharks; s++) {
-        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 10) {
+        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 5) {
             env->sharks[s].ticks_since_pause += 1;
             env->sharks[s].direction = STAY;
             continue;
         }
-        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 10) {
+        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 5) {
             env->sharks[s].paused = 0;
             env->sharks[s].ticks_since_pause = 0;
         }
