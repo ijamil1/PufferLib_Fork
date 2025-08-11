@@ -40,6 +40,7 @@
      int reset;
      int direction;
      int ticks_since_reward;
+     int num_collisions;
  } Agent;
 
  typedef struct {
@@ -214,6 +215,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
                 env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
+                env->minnows[m].num_collisions = 0;
             }
         }
     }
@@ -308,6 +310,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                     reward -= CAPTURE_PENALTY;
                     env->log.perf -= CAPTURE_PENALTY;
                     env->log.shark_collisions += 1.0f;
+                    minnow->num_collisions += 1;
                 }
                 captured = 1;
                 shark_capture_ind[s] = 1;
@@ -323,6 +326,16 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             env->log.episode_length += minnow->ticks_since_reward;
             env->log.episode_return += GOAL_REWARD;
             env->log.minnow_goal_reaches += 1.0f;
+            env->log.n++;
+            minnow->ticks_since_reward = 0;
+            env->rewards[m] = reward;
+            continue;
+        }
+        else if (captured && minnow->num_collisions >= 10) {
+            env->terminals[m] = 1;
+            env->log.score -= CAPTURE_PENALTY;
+            env->log.episode_length += minnow->ticks_since_reward;
+            env->log.episode_return -= CAPTURE_PENALTY;
             env->log.n++;
             minnow->ticks_since_reward = 0;
             env->rewards[m] = reward;
