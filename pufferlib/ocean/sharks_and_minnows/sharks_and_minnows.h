@@ -246,15 +246,127 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     }
  }
 
+ void update_rewards_new(SharksAndMinnows* env) {
+    // Core reward constants
+    const float GOAL_REWARD = 1.0f;
+    const float CAPTURE_PENALTY = 0.50f;
+
+    // Shaping rewards (scaled smaller than terminal rewards)
+    const float SURVIVAL_REWARD_INITIAL = 0.02f; // slightly larger start value
+    const float SURVIVAL_REWARD_DECAY = 0.995f;  // decay per step
+    const float UPWARD_REWARD_SCALE = 0.002f;    // per unit upward progress
+    const float DANGER_RADIUS = 100.0f;
+    const float CAPTURE_RADIUS = 25.0f;
+    const float DIST_IMPROVEMENT_SCALE = 0.05f;  // unified evasion/optimal response term
+    const float MAX_WEIGHT = 0.2f;               // clamp to avoid spikes
+
+    char shark_capture_ind[env->num_sharks];
+    for (int i = 0; i < env->num_sharks; i++) {
+        shark_capture_ind[i] = 0;
+    }
+
+    for (int m = 0; m < env->num_minnows; m++) {
+        Agent* minnow = &env->minnows[m];
+        if (minnow->reset) {
+            minnow->reset = 0;
+            continue;
+        }
+
+        float reward = 0.0f;
+        float min_global_dist = 1e9;
+        float prev_global_dist = 1e9;
+        int captured = 0;
+
+        // Track survival reward decay
+        float survival_reward = SURVIVAL_REWARD_INITIAL * powf(SURVIVAL_REWARD_DECAY, minnow->ticks_since_reward);
+
+        // Find closest shark and detect capture
+        for (int s = 0; s < env->num_sharks; s++) {
+            Shark* shark = &env->sharks[s];
+            float dx = minnow->x - shark->x;
+            float dy = minnow->y - shark->y;
+            float dist = sqrtf(dx * dx + dy * dy);
+            if (dist < min_global_dist) {
+                min_global_dist = dist;
+            }
+
+            float dx_prev = minnow->prev_x - shark->prev_x;
+            float dy_prev = minnow->prev_y - shark->prev_y;
+            float dist_prev = sqrtf(dx_prev * dx_prev + dy_prev * dy_prev);
+            if (dist_prev < prev_global_dist) {
+                prev_global_dist = dist_prev;
+            }
+
+            if (dist <= CAPTURE_RADIUS) {
+                if (captured == 0) {
+                    reward -= CAPTURE_PENALTY;
+                    env->log.perf -= CAPTURE_PENALTY;
+                    env->log.shark_collisions += 1.0f;
+                }
+                captured = 1;
+                shark_capture_ind[s] = 1;
+            }
+        }
+
+        // Terminal case: reached goal
+        if (captured == 0 && minnow->y <= 0.0f) {
+            reward = GOAL_REWARD;
+            env->terminals[m] = 1;
+            env->log.perf += GOAL_REWARD;
+            env->log.score += GOAL_REWARD;
+            env->log.episode_length += minnow->ticks_since_reward;
+            env->log.episode_return += GOAL_REWARD;
+            env->log.minnow_goal_reaches += 1.0f;
+            env->log.n++;
+            minnow->ticks_since_reward = 0;
+            env->rewards[m] = reward;
+            continue;
+        }
+
+        // --- Shaping rewards ---
+        if (captured == 0) {
+            // 1) Survival reward with decay to prevent infinite stalling
+            reward += survival_reward;
+
+            // 2) Continuous upward progress reward
+            float dy_up = minnow->prev_y - minnow->y; // positive if moved up
+            if (dy_up > 0 && prev_global_dist > DANGER_RADIUS) {
+                reward += UPWARD_REWARD_SCALE * dy_up;
+            }
+
+            // 3) Unified distance-improvement reward (replaces optimal-response & evasion)
+            if (prev_global_dist <= DANGER_RADIUS) {
+                float delta = min_global_dist - prev_global_dist; // >0 means increasing distance
+                float weight = 1.0f / (prev_global_dist + 1e-3f);
+                if (weight > MAX_WEIGHT) weight = MAX_WEIGHT; // clamp
+                reward += DIST_IMPROVEMENT_SCALE * weight * delta;
+            }
+        }
+
+        // --- Bookkeeping ---
+        env->rewards[m] = reward;
+        env->log.score += reward;
+        env->log.episode_return += reward;
+    }
+
+    // Reset sharks that captured a minnow
+    for (int s = 0; s < env->num_sharks; s++) {
+        if (shark_capture_ind[s]) {
+            pause_single_shark(env, s);
+        }
+    }
+}
+
+
  void update_rewards(SharksAndMinnows* env) {
     const float GOAL_REWARD = 1.0f;
-    const float UPWARD_REWARD = 0.005f;
+    const float UPWARD_REWARD = 0.001f;
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
     const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-    const float CAPTURE_PENALTY = 0.40f;
+    const float CAPTURE_PENALTY = 0.50f;
     char shark_capture_ind[env->num_sharks];
     
     for (int i = 0; i < env->num_sharks; i++) {
@@ -325,7 +437,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             reward += SURVIVAL_REWARD;
 
             // if not captured, give upward reward if minnow is moving upward
-            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_global_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_global_dist > DANGER_RADIUS) {
                 reward += UPWARD_REWARD;
             }
         
@@ -407,7 +519,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             }
 
             // Optionally scale it
-            evasion_reward *= 0.1f;
+            evasion_reward *= 0.2f;
             reward += evasion_reward;
         }
 
@@ -664,7 +776,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         }
     }
 
-    update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
+    update_rewards_new(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
     compute_observations(env);
 }
  
