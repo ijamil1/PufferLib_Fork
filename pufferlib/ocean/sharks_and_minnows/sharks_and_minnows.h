@@ -337,10 +337,29 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             // 3) Unified distance-improvement reward (replaces optimal-response & evasion)
             if (prev_global_dist <= DANGER_RADIUS) {
                 float delta = min_global_dist - prev_global_dist; // >0 means increasing distance
-                float weight = 1.0f / (prev_global_dist + 1e-3f);
-                if (weight > MAX_WEIGHT) weight = MAX_WEIGHT; // clamp
-                reward += DIST_IMPROVEMENT_SCALE * weight * delta;
-            }
+                if (delta > 0) {
+                    // Compute movement vector
+                    float move_dx = minnow->x - minnow->prev_x;
+                    float move_dy = minnow->y - minnow->prev_y;
+            
+                    // Goal direction vector (straight up)
+                    float goal_dx = 0.0f;
+                    float goal_dy = -1.0f;
+            
+                    // Cosine similarity to goal direction
+                    float move_mag = sqrtf(move_dx * move_dx + move_dy * move_dy) + 1e-6f;
+                    float cos_goal = (move_dx * goal_dx + move_dy * goal_dy) / move_mag;
+            
+                    // Soft scaling: min 0.25 for downward, up to 1.0 for directly upward
+                    float alignment_factor = 0.25f + 0.75f * fmaxf(0.0f, cos_goal);
+            
+                    // Weight by closeness to shark
+                    float weight = 1.0f / (prev_global_dist + 1e-3f);
+                    if (weight > MAX_WEIGHT) weight = MAX_WEIGHT;
+            
+                    reward += DIST_IMPROVEMENT_SCALE * weight * delta * alignment_factor;
+                }
+            }   
         }
 
         // --- Bookkeeping ---
