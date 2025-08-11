@@ -255,10 +255,16 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float SURVIVAL_REWARD_INITIAL = 0.02f; // slightly larger start value
     const float SURVIVAL_REWARD_DECAY = 0.995f;  // decay per step
     const float UPWARD_REWARD_SCALE = 0.002f;    // per unit upward progress
-    const float DANGER_RADIUS = 100.0f;
+    const float DANGER_RADIUS = 80.0f;
     const float CAPTURE_RADIUS = 25.0f;
     const float DIST_IMPROVEMENT_SCALE = 0.05f;  // unified evasion/optimal response term
     const float MAX_WEIGHT = 0.2f;               // clamp to avoid spikes
+
+    const float LATERAL_SCALE   = 1.0f;  // scaling for sideways evasion
+    const float UPWARD_SCALE    = 1.5f;  // scaling for upward motion
+    const float DOWNWARD_SCALE  = 0.5f;  // smaller scaling for downward motion
+    const float EPS             = 1e-3f;
+
 
     char shark_capture_ind[env->num_sharks];
     for (int i = 0; i < env->num_sharks; i++) {
@@ -333,33 +339,49 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             if (dy_up > 0 && prev_global_dist > DANGER_RADIUS) {
                 reward += UPWARD_REWARD_SCALE * dy_up;
             }
-
-            // 3) Unified distance-improvement reward (replaces optimal-response & evasion)
             if (prev_global_dist <= DANGER_RADIUS) {
-                float delta = min_global_dist - prev_global_dist; // >0 means increasing distance
-                if (delta > 0) {
-                    // Compute movement vector
-                    float move_dx = minnow->x - minnow->prev_x;
-                    float move_dy = minnow->y - minnow->prev_y;
-            
-                    // Goal direction vector (straight up)
-                    float goal_dx = 0.0f;
-                    float goal_dy = -1.0f;
-            
-                    // Cosine similarity to goal direction
-                    float move_mag = sqrtf(move_dx * move_dx + move_dy * move_dy) + 1e-6f;
-                    float cos_goal = (move_dx * goal_dx + move_dy * goal_dy) / move_mag;
-            
-                    // Soft scaling: min 0.25 for downward, up to 1.0 for directly upward
-                    float alignment_factor = 0.25f + 0.75f * fmaxf(0.0f, cos_goal);
-            
-                    // Weight by closeness to shark
-                    float weight = 1.0f / (prev_global_dist + 1e-3f);
-                    if (weight > MAX_WEIGHT) weight = MAX_WEIGHT;
-            
-                    reward += DIST_IMPROVEMENT_SCALE * weight * delta * alignment_factor;
+                for (int i = 0; i < env->num_sharks; i++) {
+                    float dx_prev = minnow->prev_x - env->sharks[i].prev_x;
+                    float dy_prev = minnow->prev_y - env->sharks[i].prev_y;
+                    float dx_curr = minnow->x - env->sharks[i].x;
+                    float dy_curr = minnow->y - env->sharks[i].y;
+                
+                    // Distance before move
+                    float dist_prev = sqrtf(dx_prev * dx_prev + dy_prev * dy_prev);
+                
+                    // --- CHANGE #1: Danger radius filter ---
+                    if (dist_prev > DANGER_RADIUS) {
+                        continue; // ignore this shark if too far
+                    }
+                
+                    // Distance after move
+                    float dist_curr = sqrtf(dx_curr * dx_curr + dy_curr * dy_curr);
+                
+                    // --- CHANGE #2: Inverse distance weighting ---
+                    float weight = 1.0f / fmaxf(dist_prev + EPS, 0.5f);
+                
+                    // Delta distances
+                    float lateral_prev = fabsf(dx_prev);
+                    float lateral_curr = fabsf(dx_curr);
+                    float vertical_prev = fabsf(dy_prev); // positive if shark above minnow
+                    float vertical_curr = fabsf(dy_curr);
+                
+                    float lateral_delta  = lateral_curr - lateral_prev; // +ve if moving away sideways
+                    float upward_delta   = vertical_curr - vertical_prev; // +ve if moving upward relative to shark
+                
+                    // --- CHANGE #3: Weighted shaping ---
+                    float reward_lateral = LATERAL_SCALE * (lateral_delta + EPS) * weight;
+                    float reward_upward = 0.0f;
+                    if (minnow->y > minnow->prev_y) {
+                        reward_upward  = DOWNWARD_SCALE * upward_delta  * weight;
+                    }
+                    else {
+                        reward_upward  = UPWARD_SCALE * fmaxf(0.0f, upward_delta)  * weight;
+                    }
+                
+                    reward += reward_lateral + reward_upward;
                 }
-            }   
+            }
         }
 
         // --- Bookkeeping ---
