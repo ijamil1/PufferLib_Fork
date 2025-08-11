@@ -332,7 +332,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             env->rewards[m] = reward;
             continue;
         }
-        else if (captured && minnow->num_collisions >= 10) {
+        else if (captured && minnow->num_collisions >= 25) {
             env->terminals[m] = 1;
             env->log.score -= CAPTURE_PENALTY;
             env->log.episode_length += minnow->ticks_since_reward;
