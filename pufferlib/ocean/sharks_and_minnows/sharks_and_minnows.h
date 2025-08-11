@@ -243,6 +243,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             env->minnows[m].prev_y = y;
             env->minnows[m].reset = 1;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
+            env->minnows[m].num_collisions = 0;
         }
     
     }
