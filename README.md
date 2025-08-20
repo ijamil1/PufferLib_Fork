@@ -1,4 +1,4 @@
-forked PufferLib
+Extended PufferLib
 
 Created my own multi-agent env and trained it in a vectorized/parallel fashion using PufferLib's PPO implementation
 
