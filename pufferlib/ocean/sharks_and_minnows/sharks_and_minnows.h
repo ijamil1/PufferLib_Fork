@@ -421,7 +421,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
     const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-    const float CAPTURE_PENALTY = 0.50f;
+    const float CAPTURE_PENALTY = -1.0f;
     char shark_capture_ind[env->num_sharks];
     
     for (int i = 0; i < env->num_sharks; i++) {
