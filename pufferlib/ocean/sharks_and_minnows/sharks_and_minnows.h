@@ -40,7 +40,6 @@
      int reset;
      int direction;
      int ticks_since_reward;
-     int num_collisions;
  } Agent;
 
  typedef struct {
@@ -215,7 +214,6 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
                 env->minnows[m].x = x;
                 env->minnows[m].y = y;
                 env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
-                env->minnows[m].num_collisions = 0;
             }
         }
     }
@@ -243,185 +241,20 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             env->minnows[m].prev_y = y;
             env->minnows[m].reset = 1;
             env->minnows[m].ticks_since_reward = 0;  // Reset episode counter
-            env->minnows[m].num_collisions = 0;
         }
     
     }
  }
 
- void update_rewards_new(SharksAndMinnows* env) {
-    // Core reward constants
-    const float GOAL_REWARD = 1.0f;
-    const float CAPTURE_PENALTY = 0.50f;
-
-    // Shaping rewards (scaled smaller than terminal rewards)
-    const float SURVIVAL_REWARD_INITIAL = 0.02f; // slightly larger start value
-    const float SURVIVAL_REWARD_DECAY = 0.995f;  // decay per step
-    const float UPWARD_REWARD_SCALE = 0.002f;    // per unit upward progress
-    const float DANGER_RADIUS = 80.0f;
-    const float CAPTURE_RADIUS = 25.0f;
-    const float DIST_IMPROVEMENT_SCALE = 0.05f;  // unified evasion/optimal response term
-    const float MAX_WEIGHT = 0.2f;               // clamp to avoid spikes
-
-    const float LATERAL_SCALE   = 1.0f;  // scaling for sideways evasion
-    const float UPWARD_SCALE    = 1.5f;  // scaling for upward motion
-    const float DOWNWARD_SCALE  = 0.5f;  // smaller scaling for downward motion
-    const float EPS             = 1e-3f;
-
-
-    char shark_capture_ind[env->num_sharks];
-    for (int i = 0; i < env->num_sharks; i++) {
-        shark_capture_ind[i] = 0;
-    }
-
-    for (int m = 0; m < env->num_minnows; m++) {
-        Agent* minnow = &env->minnows[m];
-        if (minnow->reset) {
-            minnow->reset = 0;
-            continue;
-        }
-
-        float reward = 0.0f;
-        float min_global_dist = 1e9;
-        float prev_global_dist = 1e9;
-        int captured = 0;
-
-        // Track survival reward decay
-        float survival_reward = SURVIVAL_REWARD_INITIAL * powf(SURVIVAL_REWARD_DECAY, minnow->ticks_since_reward);
-
-        // Find closest shark and detect capture
-        for (int s = 0; s < env->num_sharks; s++) {
-            Shark* shark = &env->sharks[s];
-            float dx = minnow->x - shark->x;
-            float dy = minnow->y - shark->y;
-            float dist = sqrtf(dx * dx + dy * dy);
-            if (dist < min_global_dist) {
-                min_global_dist = dist;
-            }
-
-            float dx_prev = minnow->prev_x - shark->prev_x;
-            float dy_prev = minnow->prev_y - shark->prev_y;
-            float dist_prev = sqrtf(dx_prev * dx_prev + dy_prev * dy_prev);
-            if (dist_prev < prev_global_dist) {
-                prev_global_dist = dist_prev;
-            }
-
-            if (dist <= CAPTURE_RADIUS) {
-                if (captured == 0) {
-                    reward -= CAPTURE_PENALTY;
-                    env->log.perf -= CAPTURE_PENALTY;
-                    env->log.shark_collisions += 1.0f;
-                    minnow->num_collisions += 1;
-                }
-                captured = 1;
-                shark_capture_ind[s] = 1;
-            }
-        }
-
-        // Terminal case: reached goal
-        if (captured == 0 && minnow->y <= 0.0f) {
-            reward = GOAL_REWARD;
-            env->terminals[m] = 1;
-            env->log.perf += GOAL_REWARD;
-            env->log.score += GOAL_REWARD;
-            env->log.episode_length += minnow->ticks_since_reward;
-            env->log.episode_return += GOAL_REWARD;
-            env->log.minnow_goal_reaches += 1.0f;
-            env->log.n++;
-            minnow->ticks_since_reward = 0;
-            env->rewards[m] = reward;
-            continue;
-        }
-        else if (captured && minnow->num_collisions >= 25) {
-            env->terminals[m] = 1;
-            env->log.score -= CAPTURE_PENALTY;
-            env->log.episode_length += minnow->ticks_since_reward;
-            env->log.episode_return -= CAPTURE_PENALTY;
-            env->log.n++;
-            minnow->ticks_since_reward = 0;
-            env->rewards[m] = reward;
-            continue;
-        }
-
-        // --- Shaping rewards ---
-        if (captured == 0) {
-            // 1) Survival reward with decay to prevent infinite stalling
-            reward += survival_reward;
-
-            // 2) Continuous upward progress reward
-            float dy_up = minnow->prev_y - minnow->y; // positive if moved up
-            if (dy_up > 0 && prev_global_dist > DANGER_RADIUS) {
-                reward += UPWARD_REWARD_SCALE * dy_up;
-            }
-            if (prev_global_dist <= DANGER_RADIUS) {
-                for (int i = 0; i < env->num_sharks; i++) {
-                    float dx_prev = minnow->prev_x - env->sharks[i].prev_x;
-                    float dy_prev = minnow->prev_y - env->sharks[i].prev_y;
-                    float dx_curr = minnow->x - env->sharks[i].x;
-                    float dy_curr = minnow->y - env->sharks[i].y;
-                
-                    // Distance before move
-                    float dist_prev = sqrtf(dx_prev * dx_prev + dy_prev * dy_prev);
-                
-                    // --- CHANGE #1: Danger radius filter ---
-                    if (dist_prev > DANGER_RADIUS) {
-                        continue; // ignore this shark if too far
-                    }
-                
-                    // Distance after move
-                    float dist_curr = sqrtf(dx_curr * dx_curr + dy_curr * dy_curr);
-                
-                    // --- CHANGE #2: Inverse distance weighting ---
-                    float weight = 1.0f / fmaxf(dist_prev + EPS, 0.5f);
-                
-                    // Delta distances
-                    float lateral_prev = fabsf(dx_prev);
-                    float lateral_curr = fabsf(dx_curr);
-                    float vertical_prev = fabsf(dy_prev); // positive if shark above minnow
-                    float vertical_curr = fabsf(dy_curr);
-                
-                    float lateral_delta  = lateral_curr - lateral_prev; // +ve if moving away sideways
-                    float upward_delta   = vertical_curr - vertical_prev; // +ve if moving upward relative to shark
-                
-                    // --- CHANGE #3: Weighted shaping ---
-                    float reward_lateral = LATERAL_SCALE * (lateral_delta + EPS) * weight;
-                    float reward_upward = 0.0f;
-                    if (minnow->y > minnow->prev_y) {
-                        reward_upward  = DOWNWARD_SCALE * upward_delta  * weight;
-                    }
-                    else {
-                        reward_upward  = UPWARD_SCALE * fmaxf(0.0f, upward_delta)  * weight;
-                    }
-                
-                    reward += reward_lateral + reward_upward;
-                }
-            }
-        }
-
-        // --- Bookkeeping ---
-        env->rewards[m] = reward;
-        env->log.score += reward;
-        env->log.episode_return += reward;
-    }
-
-    // Reset sharks that captured a minnow
-    for (int s = 0; s < env->num_sharks; s++) {
-        if (shark_capture_ind[s]) {
-            pause_single_shark(env, s);
-        }
-    }
-}
-
-
  void update_rewards(SharksAndMinnows* env) {
     const float GOAL_REWARD = 1.0f;
-    const float UPWARD_REWARD = 0.001f;
+    const float UPWARD_REWARD = 0.005f;
     const float DANGER_RADIUS = 100.0f;
     const float CAPTURE_RADIUS = 25.0f;
     const float OPTIMAL_RESPONSE_REWARD = 0.1f;
     const float OPTIMAL_RESPONSE_PENALTY = 0.1f;
     const float SURVIVAL_REWARD = 0.01f;
-    const float CAPTURE_PENALTY = -1.0f;
+    const float CAPTURE_PENALTY = 0.40f;
     char shark_capture_ind[env->num_sharks];
     
     for (int i = 0; i < env->num_sharks; i++) {
@@ -492,7 +325,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             reward += SURVIVAL_REWARD;
 
             // if not captured, give upward reward if minnow is moving upward
-            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_global_dist > DANGER_RADIUS) {
+            if ((minnow_direction == UP || minnow_direction == UP_LEFT || minnow_direction == UP_RIGHT) && min_global_dist > DANGER_RADIUS && minnow->y % 5 == 0) {
                 reward += UPWARD_REWARD;
             }
         
@@ -574,7 +407,7 @@ typedef enum { STAY=0, UP=1, RIGHT=2, DOWN=3, LEFT=4, UP_LEFT=5, UP_RIGHT=6, DOW
             }
 
             // Optionally scale it
-            evasion_reward *= 0.2f;
+            evasion_reward *= 0.1f;
             reward += evasion_reward;
         }
 
@@ -690,12 +523,12 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     for (int s = 0; s < env->num_sharks; s++) {
         env->sharks[s].prev_x = env->sharks[s].x;
         env->sharks[s].prev_y = env->sharks[s].y;
-        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 4) {
+        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 5) {
             env->sharks[s].ticks_since_pause += 1;
             env->sharks[s].direction = STAY;
             continue;
         }
-        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 4) {
+        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 5) {
             env->sharks[s].paused = 0;
             env->sharks[s].ticks_since_pause = 0;
         }
