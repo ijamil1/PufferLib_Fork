@@ -690,12 +690,12 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
     for (int s = 0; s < env->num_sharks; s++) {
         env->sharks[s].prev_x = env->sharks[s].x;
         env->sharks[s].prev_y = env->sharks[s].y;
-        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 5) {
+        if (env->sharks[s].paused && env->sharks[s].ticks_since_pause < 4) {
             env->sharks[s].ticks_since_pause += 1;
             env->sharks[s].direction = STAY;
             continue;
         }
-        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 5) {
+        else if (env->sharks[s].paused && env->sharks[s].ticks_since_pause >= 4) {
             env->sharks[s].paused = 0;
             env->sharks[s].ticks_since_pause = 0;
         }
@@ -831,7 +831,7 @@ void move_sharks_toward_minnows(SharksAndMinnows* env) {
         }
     }
 
-    update_rewards_new(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
+    update_rewards(env); //for the minnows that were in a terminal state and got reset, the reward will be 0
     compute_observations(env);
 }
  
