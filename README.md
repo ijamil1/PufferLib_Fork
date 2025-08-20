@@ -3,7 +3,7 @@ forked PufferLib
 Created my own multi-agent env and trained it in a vectorized/parallel fashion using PufferLib's PPO implementation
 
 
-IMPORTANT NOTE: the majority of the code in this branch is just a result of forking the actual PufferLib repo. These are the exact files I created or modified:
+IMPORTANT NOTE: the majority of the code in this branch is just a result of forking the actual PufferLib repo. These are the exact files I created:
 
 pufferlib/config/ocean/sharks_and_minnows.ini: configuration file that PufferLib's PPO trainer uses to initialize hyperparameters
 
